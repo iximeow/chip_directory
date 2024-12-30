@@ -640,6 +640,14 @@ FEATURES = [
     CPUIDFeature("Hypervisor leaves", "Microsoft Hypervisor CPUID leaves",
         0x00000001,"eax", 0, 32),
 
+    CPUIDBoolFeature("monitor", "monitor/mwait instructions",
+        0x00000001, "ecx", 3),
+
+    CPUIDBoolFeature("Long mode", "Processor supports AMD64 mode",
+        0x80000001, "edx", 29),
+
+    CPUIDBoolFeature("DecodeAssist", "SVM helps decode instructions on VMEXIT",
+        0x8000000A,"edx", 7),
     CPUIDBoolFeature("AVIC", "SVM has AVIC support",
         0x8000000A,"edx", 13),
     CPUIDBoolFeature("x2AVIC", "SVM has x2AVIC support",
@@ -1194,7 +1202,7 @@ def add(dbpath, cpuid_filename):
     cpu_features = db['cpu_features']
 
     if db['cpus'].find_one(name=info.proc_name()):
-        print("already exists?")
+        print("'{}' already exists?".format(info.proc_name()))
         sys.exit(0)
 
     fam = info.feature("family")
@@ -1240,7 +1248,7 @@ def add(dbpath, cpuid_filename):
 
 def get_interesting(feat_names):
     predicate = ' and '.join(
-        ["cpus.id in has_{}".format(f) for f in feat_names]
+        ["cpus.id in has_{}".format(f.replace(" ", "SP")) for f in feat_names]
     )
     interesting_ctes = """
     interesting as (
@@ -1255,15 +1263,15 @@ def get_interesting(feat_names):
     return interesting_ctes.format(predicate)
 
 def get_predicate_cte(featname):
+    mangled = featname.replace(" ", "SP")
     return """
         has_{} as (
             select cpu_features.cpu from cpu_features
                 join features on cpu_features.feature=features.id
             where features.name="{}" and features.value="1"
-        ),""".format(featname, featname)
+        ),""".format(mangled, featname)
 
 def get_interesting_ctes(features):
-    features = [f.replace(" ", "SP") for f in features]
     predicates = [get_predicate_cte(feat) for feat in features]
 
     return "with " + "".join(predicates) + get_interesting(features)
