@@ -104,6 +104,10 @@ class CPUIDBoolFeature(CPUIDFeature):
         if self.value == 1:
             return self.shortname
 
+# this could and should be a .sql file that lives on its own and versioned
+# reasonably. it's just here because the first alternative i thought was storing
+# a .db file in git and that would have no granular revision history, so, don't
+# do that!
 CPU_UARCH_INFO = {
     "Am486": {
         "name": "Am486"
@@ -288,6 +292,10 @@ CPU_UARCH_INFO = {
     }
 }
 
+# this could and should be a .sql file that lives on its own and versioned
+# reasonably. it's just here because the first alternative i thought was storing
+# a .db file in git and that would have no granular revision history, so, don't
+# do that!
 CPU_FAMILY_INFO = {
     "Am486": {
         "name": "Am486"
