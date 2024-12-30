@@ -3,6 +3,8 @@ import re
 import sys
 import struct
 
+import dataset
+
 class ParseState(Enum):
     HEADER = 0,
     VERSION = 1
@@ -14,8 +16,30 @@ class ParseState(Enum):
     CPU_SUMMARY = 7
     DONE = 8
 
+class ParsedFeature:
+    def __init__(self, shortname, longname, value, present=True):
+        self.shortname = shortname
+        self.longname = longname
+        self.value = value
+        self.present = present
+
+    def value(self):
+        if self.present:
+            return self.value
+        else:
+            return None
+
+    def show(self):
+        return "{}: {}".format(self.shortname, self.value)
+
+    def __str__(self):
+        if self.value:
+            return self.show()
+        else:
+            return "-{}".format(self.shortname)
+
 class CPUIDFeature:
-    def __init__(self, shortname, longname, reg, offset, width, leaf,
+    def __init__(self, shortname, longname, leaf, reg, offset, width,
             subleaf=None, filter=None):
         self.shortname = shortname
         self.longname = longname
@@ -36,7 +60,8 @@ class CPUIDFeature:
         if self.leaf not in info.cpuid[0]:
             # TOOD: no self.value means we parsed nothing. this probably be a
             # bit more explicit..
-            return self
+            return self.into_non_present()
+
         top_level = info.cpuid[0][self.leaf]
         leaf = None
         if self.subleaf:
@@ -48,29 +73,580 @@ class CPUIDFeature:
 
         bits = (reg >> self.offset) & ((1 << self.width) - 1)
 
-        self.value = bits
+        return self.into_present(bits)
 
-        return self
+    def present(self):
+        raise Exception("What")
 
-    def show(self):
-        return "{}: {:x}".format(self.shortname, self.value)
+    def into_non_present(self):
+        return ParsedFeature(
+            self.shortname,
+            self.longname,
+            None,
+            present=False
+        )
 
-    def __str__(self):
-        if self.value:
-            return self.show()
-        else:
-            return "-{}".format(self.shortname)
+    def into_present(self, value):
+        return ParsedFeature(
+            self.shortname,
+            self.longname,
+            value,
+        )
 
 class CPUIDBoolFeature(CPUIDFeature):
-    def __init__(self, shortname, longname, reg, offset, leaf, subleaf=None):
-        super().__init__(shortname, longname, reg, offset, 1, leaf, subleaf)
+    def __init__(self, shortname, longname, leaf, reg, offset, subleaf=None):
+        super().__init__(shortname, longname, leaf, reg, offset, 1, subleaf)
+
+    def present(self):
+        return self.value == 1
 
     def show(self):
         if self.value == 1:
             return self.shortname
 
+CPU_UARCH_INFO = {
+    "Am486": {
+        "name": "Am486"
+    },
+    # the Am5x86 is reportedly an Am486 with some improvements (cache, process
+    # improvements leading to higher clocks).
+    "Am5x86": {
+        "name": "Am486",
+        "first": "1995-11-01"
+    },
+    "K5": {
+        "name": "K5",
+        "family": "K5",
+    },
+    "K6": {
+        "name": "K6",
+        "family": "K6"
+    },
+    "K6-2": {
+        "name": "K6-2",
+        "family": "K6"
+    },
+    "K6-III": {
+        "name": "K6-III",
+        "family": "K6"
+    },
+    "K6-III+": {
+        "name": "K6-III+",
+        "family": "K6"
+    },
+    "K7": {
+        "name": "K7",
+        "family": "K7"
+    },
+    "K7": {
+        "name": "K7",
+        "family": "K7"
+    },
+    "K75": {
+        "name": "K75",
+        "family": "K7"
+    },
+    "Morgan": {
+        "name": "Morgan",
+        "family": "K7"
+    },
+    "Palomino": {
+        "name": "Palomino",
+        "family": "K7"
+    },
+    "Spitfire": {
+        "name": "Spitfire",
+        "family": "K7"
+    },
+    "Thoroughbred": {
+        "name": "Thoroughbred",
+        "family": "K7"
+    },
+    "Thunderbird": {
+        "name": "Thunderbird",
+        "family": "K7"
+    },
+    "Barton": {
+        "name": "Barton",
+        "family": "K7"
+    },
+    "K8": {
+        "name": "K8",
+        "family": "K8"
+    },
+    "ClawHammer": {
+        "name": "ClawHammer",
+        "family": "K8"
+    },
+    "SledgeHammer": {
+        "name": "SledgeHamer",
+        "family": "K8"
+    },
+    "Winchester": {
+        "name": "Winchester",
+        "family": "K8"
+    },
+    "Manchester": {
+        "name": "Manchester",
+        "family": "K8"
+    },
+    # allegedly a wholly different design focused on low-power applications.
+    # could use better citations...
+    "Bobcat": {
+        "name": "Bobcat",
+        "family": "Bobcat"
+    },
+    "Jaguar": {
+        "name": "Jaguar",
+        "family": "Jaguar"
+    },
+    "Cato": {
+        "name": "Cato",
+        "family": "Jaguar"
+    },
+    "Puma": {
+        "name": "Puma",
+        "family": "Jaguar"
+    },
+    "K10": {
+        "name": "K10",
+        "family": "K10"
+    },
+    "Puma (2008)": {
+        "name": "Puma (2008)",
+        "family": "K10"
+    },
+    # the first of the AMD64 Opterons!
+    "Barcelona": {
+        "name": "Barcelona",
+        "family": "K10"
+    },
+    # first Phenom II
+    "Thuban": {
+        "name": "Thuban",
+        "family": "K10"
+    },
+    # Phenom II, and some Athlon X2
+    "Deneb": {
+        "name": "Deneb",
+        "family": "K10"
+    },
+    # Phenom II (later on), some Athlon X2
+    "Regor": {
+        "name": "Regor",
+        "family": "K10"
+    },
+    # more Opteron
+    "Istanbul": {
+        "name": "Istanbul",
+        "family": "K10"
+    },
+    # end of the K10 Opteron era
+    "Magny-Cours": {
+        "name": "Magny-Cours",
+        "family": "K10"
+    },
+    "Bulldozer": {
+        "name": "Bulldozer",
+        "family": "Bulldozer"
+    },
+    "Excavator": {
+        "name": "Excavator",
+        "family": "Bulldozer"
+    },
+    "Piledriver": {
+        "name": "Piledriver",
+        "family": "Bulldozer"
+    },
+    "Steamroller": {
+        "name": "Steamroller",
+        "family": "Bulldozer"
+    },
+    "Zen": {
+        "name": "Zen",
+        "family": "Zen"
+    },
+    "Zen 2": {
+        "name": "Zen 2",
+        "family": "Zen"
+    },
+    "Zen 3": {
+        "name": "Zen 3",
+        "family": "Zen 3"
+    },
+    "Zen 4": {
+        "name": "Zen 4",
+        "family": "Zen 3"
+    },
+    "Zen 4c": {
+        "name": "Zen 4c",
+        "family": "Zen 3"
+    },
+    "Zen 5": {
+        "name": "Zen 5",
+        "family": "Zen 3"
+    }
+}
+
+CPU_FAMILY_INFO = {
+    "Am486": {
+        "name": "Am486"
+    },
+    "K5": {
+        "name": "K5"
+    },
+    "K6": {
+        "name": "K6"
+    },
+    "K7": {
+        "name": "K7"
+    },
+    "K8": {
+        "name": "K8"
+    },
+    "K10": {
+        "name": "K10"
+    },
+    "Bobcat": {
+        "name": "Bobcat"
+    },
+    "Jaguar": {
+        "name": "Jaguar"
+    },
+    "Bulldozer": {
+        "name": "Bulldozer"
+    },
+    "Zen": {
+        "name": "Zen"
+    },
+    "Zen 3": {
+        "name": "Zen 3"
+    },
+}
+
+AMD_CPU_PRODUCT_INFO = {
+    "Am5x86": {
+        "datasheet": "https://datasheets.chipdb.org/AMD/486_5x86/19751C.pdf",
+        "date": {
+            "after": "01/03/1996",
+            "after_ref": "datasheet",
+            "before": "01/12/1996",
+            "before_ref": "citations no https://en.wikipedia.org/wiki/Am5x86"
+        }
+    }
+}
+
+class CPUIDVendor:
+    def __init__(self):
+        self.shortname = "vendor"
+        self.longname = "CPUID-defined vendor string from leaf 0h"
+
+    def parse(self, info):
+        if 0x00000000 not in info.cpuid[0]:
+            return None
+
+        brand = info.cpuid[0][0x00000000]
+
+        # yes it's in b, d, c order.
+        vendorname = struct.pack("<III", brand['ebx'], brand['edx'],
+                brand['ecx'])
+
+        info.add_feature(ParsedFeature(
+            self.shortname, self.longname, vendorname.decode("utf8")
+        ))
+
+class CPUIDUarch:
+    def __init__(self):
+        self.shortname = "uarch"
+        self.longname = """Microarchitecture of the processor as informed by \
+            Family/Model/Stepping fields"""
+
+    def parse(self, info):
+        if 0x00000000 not in info.cpuid[0]:
+            return None
+
+        brand = info.cpuid[0][0x00000000]
+
+        vendorname = info.feature("vendor").value
+
+        uarch_fam = None
+
+        if vendorname == "AuthenticAMD":
+            uarch_fam = self.parse_amd(info)
+        elif vendorname == "GenuineIntel":
+            uarch_fam = self.parse_intel(info)
+#        else:
+#            print("""cannot currently handle processors from vendor \
+#                    {}""".format(vendorname))
+
+        if uarch_fam is None:
+            return
+
+        if "uarch" in uarch_fam:
+            info.add_feature(ParsedFeature(
+                "uarch", "CPUID-implied processor architecture",
+                uarch_fam["uarch"]
+            ))
+
+        if "family" in uarch_fam:
+            info.add_feature(ParsedFeature(
+                "family", "CPUID-implied processor family", uarch_fam["family"]
+            ))
+
+
+    def parse_intel(self, info):
+        return None
+#         raise Exception("Intel not supported yet")
+
+    def parse_amd(self, info):
+        family = info.feature("FamilyID").value
+        ext_family = info.feature("ExtendedFamilyID").value
+        if ext_family:
+            family += ext_family
+
+        model = info.feature("ModelID").value
+        ext_model = info.feature("ExtendedModelID").value
+        if ext_model:
+            model += ext_model
+
+        # upsettingly, sources here are scant. Todd Allen's `cpuid` describes
+        # all K6 family processors as K6 uarch, but with more specific synthetic
+        # family names. for most purposes i'm concerned about, uarch revisions,
+        # such as K6, K6-2, K6-III, should be distinct. similarly, revisions
+        # through the Athlon years are very informative, and on and on.
+        #
+        # pages like Wikipedia's `List of AMD K6 processors` are heavily sourced
+        # from cpu-world.com/CPUs/*, whose pages currently return text like:
+        # > Specifications pages and related web pages were taken down due to
+        # > ongoing content scraping.
+        # >
+        # > The pages will be back online once scraping stops.
+        #
+        # great.
+        #
+        # simultaneously, en.wikichip.org has been down for two weeks so it's
+        # not trivial to crosscheck any descriptions there either.
+        #
+        # great.
+        #
+        # so, at a high level this is informed by Todd Allen's descriptions,
+        # partially cross-checked by the "CPU Alias" reported by EVEREST or AIDA
+        # if a header is available in InstLatx64 dumps, as well as some checking
+        # against pages via internet archive.
+
+        # "uarch" and "family" are mushy distinctions. "uarch" tries to hew more
+        # closely to an actual description of a physical core that ships in a
+        # real product. "family" is a mushier distinction, which might be best
+        # described as a "descends-from" relationship. one could of course say
+        # that everything descends from the 8086 (or 8080, or 4004, or ..), but
+        # this is too broad to be truly informative. so "family" here is a fuzzy
+        # line like "more comprehensive change than just adding/expanding
+        # caches". practically speaking, for AMD cases, "family" in cpuid
+        # reflects this pretty well and tracks with their own branding/marketing
+        # of products.
+
+        amd_fm_uarchs = {
+            (4, 3): { "uarch": "Am486" },
+            (4, 7): { "uarch": "Am486" },
+            (4, 8): { "uarch": "Am486" },
+            (4, 9): { "uarch": "Am486" },
+            # https://datasheets.chipdb.org/AMD/486_5x86/19751C.pdf
+            # page 56 describes CPUID model/family bits for AMD 5x86
+            # processors. this is slightly more precise than `cpuid`.
+            (4, 0xe): { "uarch": "Am5x86" },
+            (4, 0xf): { "uarch": "Am5x86" },
+            0x4: { "family": "K5" },
+            # cpu-world.com and EVEREST agree F=5/M={0,1} is K5
+            # cpuid does not mention these
+            (5, 0): { "uarch": "K5" },
+            (5, 1): { "uarch": "K5" },
+            # cpu-world.com, EVEREST, and cpuid all agree these are K6
+            # though.
+            (5, 6): { "uarch": "K6", "family": "K6" },
+            (5, 7): { "uarch": "K6", "family": "K6" },
+            # back on our own..
+            (5, 8): { "uarch": "K6-2", "family": "K6" },
+            (5, 9): { "uarch": "K6-III", "family": "K6" },
+            # what about models a-c?
+            # "K6-2+" was also family 5/model D, donthough InstLatx64 has
+            # one record of a K6-2+ which can be distinguished only by
+            # stepping (4, rather than 0). not bothering with that
+            # distiction here.
+            (5, 0xd): { "uarch": "K6-III+", "family": "K6" },
+            0x5: { "family": "K6" },
+            (6, 1): { "uarch": "K7", "family": "K7" },
+            (6, 2): { "uarch": "K75", "family": "K7" },
+            (6, 3): { "uarch": "Spitfire", "family": "K7" },
+            (6, 4): { "uarch": "Thunderbird", "family": "K7" },
+            (6, 6): { "uarch": "Palomino", "family": "K7" },
+            (6, 7): { "uarch": "Morgan", "family": "K7" },
+            # InstLatx86 has a Thoroughbred as stepping 0, Appelbred as
+            # stepping 1. no stepping distinguisher here though, yet
+            (6, 8): { "uarch": "Thoroughbred", "family": "K7" },
+            (6, 10): { "uarch": "Barton", "family": "K7" },
+            0x6: { "family": "K7" },
+            # reportedly K8 and K7 are very similar, just that K8 also has
+            # the minor addition of "x86-64". i've not found much to
+            # substantiate this, so [citation needed] as it were.
+            (0xf, 0x4): { "uarch": "ClawHammer", "family": "K8" },
+            (0xf, 0x5): { "uarch": "SledgeHamer", "family": "K8" },
+            # etallen's `cpuid` lists more entries here, but InstLatx64's
+            # cpuid collection doesn't have samples to check against, so
+            # skipping forward a few..
+
+            # cpuid leaf 1 eax has `2` in Extended Model ID but model is
+            # <0xf?
+            (0xf, 0xb): { "uarch": "Manchester", "family": "K8" },
+            # notably cpuid leaf 1 eax has a `1` in Extended Model ID for
+            # this sample, but the model is 0xc rather than 0xf, so extended
+            # model should be unused..?
+            (0xf, 0xc): { "uarch": "Winchester", "family": "K8" },
+            # "AuthenticAMD0010FF0_K8_Palermo_CPUID.txt" claims to be
+            # Palermo, but so does 00020FC2. and Venice claims to be
+            # 00020FF0.
+            0xf: { "family": "K8" },
+            # K10 is a really great example of how "uarch" is reductive,
+            # probably should just use the word "model", or swap "family" and
+            # "uarch" though that might conflict with what The Rest Of The World
+            # means by those things. these processors' *cores* are all largely
+            # the same (e.g. "K10"), and the variation between them seems to be
+            # more due to process changes (transistor size shrining, changes to
+            # whatever the predecessor to the SMU/PSP were). Turbo core was
+            # added in the K10 family of parts but that also is not a core
+            # change so much as a "microcontroller controlling the core"..
+            #
+            # another problem that's really dramatic in the K10 era is that
+            # production parts have the same family/model for different product
+            # segments. family 10h model 2 is *not* just "Opteron", but to
+            # detect exactly which segment a processor is in you apparently need
+            # to consult the brand string to know Opteron, Athlon, etc
+            (0x10, 0): { "uarch": "", "family": "K10" },
+            (0x10, 2): { "uarch": "Barcelona", "family": "K10" },
+            (0x10, 4): { "uarch": "Deneb", "family": "K10" },
+            (0x10, 5): { "uarch": "", "family": "K10" },
+            (0x10, 6): { "uarch": "Regor", "family": "K10" },
+            (0x10, 8): { "uarch": "Istanbul", "family": "K10" },
+            (0x10, 9): { "uarch": "Magny-Cours", "family": "K10" },
+            (0x10, 10): { "uarch": "Thuban", "family": "K10" },
+            # not sure InstLatx64 has samples here.. wikipedia also notes these
+            # as "Turion X2 Ultra
+            0x11: { "uarch": "Puma (2008)", "family": "K10" },
+            # double check A8-3850
+            0x12: { "uarch": "Puma (2008)", "family": "K10" },
+            0x14: { "uarch": "Bobcat", "family": "Bobcat" },
+            # iteration on Bobcat, still all distinct from the construction
+            # machine architectures.
+            (0x16, 0): { "uarch": "Jaguar", "family": "Jaguar" },
+            # not widely released..
+            (0x16, 2): { "uarch": "Cato", "family": "Jaguar" },
+            (0x16, 8): { "uarch": "Cato", "family": "Jaguar" },
+            # distinct from the model 11h Puma! this was more widely shipping.
+            (0x16, 3): { "uarch": "Puma", "family": "Jaguar" },
+
+            # bulldozer/piledriver/steamroller/excavator
+            (0x15, 0): { "uarch": "Bulldozer", "family": "Bulldozer" },
+            (0x15, 1): { "uarch": "Piledriver", "family": "Bulldozer" },
+            # double check. FX-8350
+            (0x15, 2): { "uarch": "Piledriver", "family": "Bulldozer" },
+            (0x15, 3): { "uarch": "Steamroller", "family": "Bulldozer" },
+            (0x15, 4): { "uarch": "Steamroller", "family": "Bulldozer" },
+            (0x15, 6): { "uarch": "Excavator", "family": "Bulldozer" },
+            (0x15, 7): { "uarch": "Excavator", "family": "Bulldozer" },
+
+            # double check. A12-9800 etc
+            (0x15, 0xb): { "uarch": "Excavator", "family": "Bulldozer" },
+
+            # Zen and onward. this is a bit funky because AMD describes Zen,
+            # Zen_, and Zen 2 together in "Revision Guide for AMD Family 17h
+            # Models 00h-0Fh Processors" publication 55449. evidence towards
+            # their similarity, i suppose?
+            # anyway, `cpuid`'s approach is to encode which specific models were
+            # which architecture, probably good enough here too.
+            (0x17, 0): { "uarch": "Zen", "family": "Zen" },
+            (0x17, 1): { "uarch": "Zen", "family": "Zen" },
+            (0x17, 2): { "uarch": "Zen", "family": "Zen" },
+            (0x17, 3): { "uarch": "Zen 2", "family": "Zen" },
+            # other fam 17h models not mentioned above are... probably Zen 2?
+            0x17: { "uarch": "Zen 2", "family": "Zen" },
+
+            # mostly by vibes: Zen 3 seems distinct enough from Zen/Zen 2 to be
+            # a new "family".
+            (0x19, 0): { "uarch": "Zen 3", "family": "Zen 3" },
+            # though Zen 4 was a refresh on Zen 3 rather than substantially
+            # different
+            (0x19, 1): { "uarch": "Zen 4", "family": "Zen 3" },
+            (0x19, 2): { "uarch": "Zen 3", "family": "Zen 3" },
+            (0x19, 3): { "uarch": "Zen 3", "family": "Zen 3" },
+            (0x19, 4): { "uarch": "Zen 3", "family": "Zen 3" },
+            (0x19, 5): { "uarch": "Zen 3", "family": "Zen 3" },
+            (0x19, 6): { "uarch": "Zen 4", "family": "Zen 3" },
+            (0x19, 7): { "uarch": "Zen 4", "family": "Zen 3" },
+            (0x19, 8): { "uarch": "Zen 4", "family": "Zen 3" },
+            (0x19, 9): { "uarch": "Zen 4", "family": "Zen 3" },
+            (0x19, 10): { "uarch": "Zen 4c", "family": "Zen 3" },
+
+
+            # at least Ryzen 9 7940H w/ Radeon 780M?
+            (0x19, 11): { "uarch": "Zen 4", "family": "Zen 3" },
+            # at least Ryzen 9 7940H
+            (0x19, 12): { "uarch": "Zen 4", "family": "Zen 3" },
+            # at least Ryzen 7 8700G
+            (0x19, 13): { "uarch": "Zen 4", "family": "Zen 3" },
+            (0x19, 15): { "uarch": "Zen 4", "family": "Zen 3" },
+
+            # allegedly a "ground up redesign" of zen 3, i don't know how
+            # similar or different this is from zen 3/4 yet though.
+            (0x1a, 0): { "uarch": "Zen 5", "family": "Zen 3" },
+            (0x1a, 1): { "uarch": "Zen 5", "family": "Zen 3" },
+            (0x1a, 2): { "uarch": "Zen 5", "family": "Zen 3" },
+            (0x1a, 3): { "uarch": "Zen 5", "family": "Zen 3" },
+            (0x1a, 4): { "uarch": "Zen 5", "family": "Zen 3" },
+            (0x1a, 5): { "uarch": "Zen 5", "family": "Zen 3" },
+            (0x1a, 6): { "uarch": "Zen 5", "family": "Zen 3" },
+            (0x1a, 7): { "uarch": "Zen 5", "family": "Zen 3" },
+            (0x1a, 8): { "uarch": "Zen 5", "family": "Zen 3" },
+
+        }
+
+        if (family, model) in amd_fm_uarchs:
+            return amd_fm_uarchs[(family, model)]
+        elif family in amd_fm_uarchs:
+            return amd_fm_uarchs[family]
+        else:
+            print("unknown family and/or model: {:x}h/{:x}h".format(family,
+                model))
+            print("  {}".format(info.cpuid_name))
+            return { "family": "unknown ({:x})/{:x})".format(family, model) }
+
 FEATURES = [
-    CPUIDBoolFeature("ARAT", "Always Running APIC Timer", "eax", 2, 0x00000006)
+    CPUIDBoolFeature("PCLMULDQ", "PCLMULDQ", 0x00000001, "ecx", 1),
+    CPUIDBoolFeature("TscInvariant", """TSC runs at a constant frequency in all \
+            P- and C-states""", 0x80000007, "edx", 8),
+    CPUIDBoolFeature("ARAT", "Always Running APIC Timer", 0x00000006, "eax", 2),
+    CPUIDFeature("ExtendedFamilyID", "Extended Family ID", 0x00000001, "eax", 20,
+        4),
+    CPUIDFeature("ExtendedModelID", "Extended Model ID", 0x00000001, "eax", 16,
+        4),
+    CPUIDFeature("FamilyID", "Family ID", 0x00000001, "eax", 8, 4),
+    CPUIDFeature("ModelID", "Model ID", 0x00000001, "eax", 4, 4),
+
+    CPUIDFeature("TSC:CLK (denominator)", "", 0x00000015, "eax", 0, 32),
+    CPUIDFeature("TSC:CLK (numerator)", "", 0x00000015, "ebx", 0, 32),
+    CPUIDFeature("base CCLK", "", 0x00000016, "eax", 0, 16),
+    CPUIDFeature("max CCLK", "", 0x00000016, "ebx", 0, 16),
+
+    CPUIDBoolFeature("Virtualized", "Running on a virtual processor",
+        0x00000001, "ecx", 31),
+    CPUIDFeature("Hypervisor leaves", "Microsoft Hypervisor CPUID leaves",
+        0x00000001,"eax", 0, 32),
+
+    CPUIDBoolFeature("AVIC", "SVM has AVIC support",
+        0x8000000A,"edx", 13),
+    CPUIDBoolFeature("x2AVIC", "SVM has x2AVIC support",
+        0x8000000A,"edx", 18),
+
+    CPUIDVendor(),
+    CPUIDUarch()
 ]
 
 section_headers = {
@@ -186,6 +762,36 @@ motherboard_lines = {
 }
 
 class AIDAInfo:
+    def feature(self, name):
+        for feat in self.parsed_features:
+            if feat.shortname == name:
+                return feat
+
+        return None
+
+    def add_feature(self, feat_info):
+        self.parsed_features.append(feat_info)
+
+    def proc_name(self):
+        if self.cpuid_name:
+            return self.cpuid_name
+        else:
+            family = self.feature("FamilyID").value
+            ext_family = self.feature("ExtendedFamilyID").value
+            if ext_family:
+                family += ext_family
+
+            model = self.feature("ModelID").value
+            ext_model = self.feature("ExtendedModelID").value
+            if ext_model:
+                model += ext_model
+
+            return "Unknown {} family {}h model {}h".format(
+                self.feature("vendor"),
+                family,
+                model
+            )
+
     def __init__(self, text):
         global FEATURES
         state = ParseState.HEADER
@@ -516,7 +1122,8 @@ class AIDAInfo:
                                 break
                             # TODO: HACK: handle weird lines in Ryzen Z1 cpuid
                             if line.startswith("Group: 0x00 Affinity mask: "):
-                                # see above about this pattern. guess CPU numbers...
+                                # see above about this pattern. guess CPU
+                                # numbers...
                                 self.inaccurate_core_number = True
                                 if not self.guessing_cpu_nr:
                                     self.guessing_cpu_nr = True
@@ -563,6 +1170,11 @@ class AIDAInfo:
                 leaf2["eax"], leaf2["ebx"], leaf2["ecx"], leaf2["edx"], 
                 leaf3["eax"], leaf3["ebx"], leaf3["ecx"], leaf3["edx"]
             ).decode("utf-8").rstrip("\x00").rstrip(" ")
+
+            # there are two Van Gogh AMD APUs that have a newline at the end of
+            # their processor brand string.
+            s = s.strip()
+
             self.cpuid_name = s
         else:
             self.cpuid_name = None
@@ -573,22 +1185,158 @@ class AIDAInfo:
             if parsed:
                 self.parsed_features.append(parsed)
 
-# text = open("./InstLatx64/AuthenticAMD/AuthenticAMD0870F10_K17_Matisse_11_CPUID.txt", "r").readlines()
-text = open(sys.argv[1], "r").readlines()
-# print(text)
+def add(dbpath, cpuid_filename):
+    text = open(cpuid_filename, "r").readlines()
+    db = dataset.connect("sqlite:///{}".format(dbpath))
 
-info = AIDAInfo(text)
-# print(info.version)
-if "synth_type" in info.aida_cpuid:
-    if "alias" in info.aida_cpuid:
-        print("{}: {}".format(info.aida_cpuid["alias"], info.aida_cpuid["synth_type"]))
-    else:
-        print("{}".format(info.aida_cpuid["synth_type"]))
-elif info.cpuid_name:
-    print("{} (no AIDA banner)".format(info.cpuid_name))
-else:
-    print("{} (cannot summarize)".format(sys.argv[1]))
-# print(info.motherboard)
-# print(info.cpuid[1])
-for feat in info.parsed_features:
-    print("- ", feat)
+    info = AIDAInfo(text)
+
+    cpu_features = db['cpu_features']
+
+    if db['cpus'].find_one(name=info.proc_name()):
+        print("already exists?")
+        sys.exit(0)
+
+    fam = info.feature("family")
+    fam_id = None
+    if fam:
+        fam_id = db['families'].find_one(name=fam.value)
+        if fam_id is None:
+            db['families'].insert(CPU_FAMILY_INFO[fam.value])
+        fam_id = db['families'].find_one(name=fam.value)["id"]
+
+    uarch = info.feature("uarch")
+    uarch_id = None
+    if uarch:
+        uarch_id = db['uarches'].find_one(name=uarch.value)
+        if uarch_id is None:
+            db['uarches'].insert(CPU_UARCH_INFO[uarch.value])
+        uarch_id = db['uarches'].find_one(name=uarch.value)["id"]
+
+    first_cpu_info = info.cpuid[0]
+    leaf_0h = first_cpu_info[0]
+    cpu_id = db['cpus'].insert({
+        "name": info.proc_name(),
+        "cpuid_fms": leaf_0h['eax'],
+        "family": fam_id,
+    })
+
+    for feat in info.parsed_features:
+        if feat.present:
+            db_feat = db['features'].find_one(
+                    name=feat.shortname, value=feat.value)
+            if not db_feat:
+                feat_id = db['features'].insert({
+                    "name": feat.shortname,
+                    "value": feat.value,
+                })
+            else:
+                feat_id = db_feat['id']
+
+            cpu_features.insert({
+                "cpu": cpu_id,
+                "feature": feat_id
+            })
+
+def get_interesting(feat_names):
+    predicate = ' and '.join(
+        ["cpus.id in has_{}".format(f) for f in feat_names]
+    )
+    interesting_ctes = """
+    interesting as (
+        select cpus.id from cpus where
+            {}
+    ),
+    not_interesting as (
+        select cpus.id from cpus where
+            cpus.id not in interesting
+    )
+    """
+    return interesting_ctes.format(predicate)
+
+def get_predicate_cte(featname):
+    return """
+        has_{} as (
+            select cpu_features.cpu from cpu_features
+                join features on cpu_features.feature=features.id
+            where features.name="{}" and features.value="1"
+        ),""".format(featname, featname)
+
+def get_interesting_ctes(features):
+    features = [f.replace(" ", "SP") for f in features]
+    predicates = [get_predicate_cte(feat) for feat in features]
+
+    return "with " + "".join(predicates) + get_interesting(features)
+
+def cpus_with_query(features):
+    return get_interesting_ctes(features) + \
+        """ select distinct cpus.id, cpus.name from cpus \
+        where cpus.id in interesting;"""
+
+def cpus_without_query(features):
+    return get_interesting_ctes(features) + \
+        """ select distinct cpus.id, cpus.name from cpus \
+        where cpus.id in not_interesting;"""
+
+def families_with_query(features):
+    return get_interesting_ctes(features) + \
+        """ select distinct families.id, families.name from cpus join families \
+        on cpus.family=families.id where cpus.id in interesting;"""
+
+def families_without_query(features):
+    return get_interesting_ctes(features) + \
+        """ select distinct families.id, families.name from cpus join families \
+        on cpus.family=families.id where cpus.id in not_interesting;"""
+
+
+def families_transitioning_query(features):
+    return get_interesting_ctes(features) + \
+        """ select * from families where
+            families.id in interesting and
+            families.id in not_interesting;"""
+
+def families_with(dbpath, features):
+    db = dataset.connect("sqlite:///{}".format(dbpath))
+    families = db.query(families_with_query(features))
+    for family in families:
+        print(family['name'])
+
+def families_without(dbpath, features):
+    db = dataset.connect("sqlite:///{}".format(dbpath))
+    families = db.query(families_without_query(features))
+    for family in families:
+        print(family['name'])
+
+def families_transitioning(dbpath, features):
+    db = dataset.connect("sqlite:///{}".format(dbpath))
+    families = db.query(families_transitioning_query(features))
+    for family in families:
+        print(family['name'])
+
+def cpus_with(dbpath, features):
+    db = dataset.connect("sqlite:///{}".format(dbpath))
+    cpus = db.query(cpus_with_query(features))
+    for cpu in cpus:
+        print(cpu['name'])
+
+def cpus_without(dbpath, features):
+    db = dataset.connect("sqlite:///{}".format(dbpath))
+    cpus = db.query(cpus_without_query(features))
+    for cpu in cpus:
+        print(cpu['name'])
+
+
+cmd = sys.argv[1]
+
+if cmd == "add":
+    add(sys.argv[2], sys.argv[3])
+elif cmd == "cpus-with":
+    cpus_with(sys.argv[2], sys.argv[3:])
+elif cmd == "cpus-without":
+    cpus_without(sys.argv[2], sys.argv[3:])
+elif cmd == "families-with":
+    families_with(sys.argv[2], sys.argv[3:])
+elif cmd == "families-without":
+    families_without(sys.argv[2], sys.argv[3:])
+elif cmd == "families-transitioning":
+    families_transitioning(sys.argv[2], sys.argv[3:])
