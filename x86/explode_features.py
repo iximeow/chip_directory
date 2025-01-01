@@ -183,7 +183,7 @@ CPU_UARCH_INFO = {
         "family": "K8"
     },
     "SledgeHammer": {
-        "name": "SledgeHamer",
+        "name": "SledgeHammer",
         "family": "K8"
     },
     "Winchester": {
@@ -235,6 +235,12 @@ CPU_UARCH_INFO = {
         "name": "Deneb",
         "family": "K10"
     },
+    # Phenom II, but Weird
+    # https://www.techpowerup.com/98975/amd-athlon-ii-x4-propus-600-quad-core-chips-include-45w-models
+    "Propus": {
+        "name": "Propus",
+        "family": "K10"
+    },
     # Phenom II (later on), some Athlon X2
     "Regor": {
         "name": "Regor",
@@ -266,6 +272,9 @@ CPU_UARCH_INFO = {
         "name": "Steamroller",
         "family": "Bulldozer"
     },
+    # maybe one of the more interesting members of this series is
+    # DG02SRTBP4MFA, maybe an APU or something?
+    # https://wccftech.com/amd-fenghuang-apu-3dmark-specs-performance-leak/
     "Zen": {
         "name": "Zen",
         "family": "Zen"
@@ -497,7 +506,7 @@ class CPUIDUarch:
             # the minor addition of "x86-64". i've not found much to
             # substantiate this, so [citation needed] as it were.
             (0xf, 0x4): { "uarch": "ClawHammer", "family": "K8" },
-            (0xf, 0x5): { "uarch": "SledgeHamer", "family": "K8" },
+            (0xf, 0x5): { "uarch": "SledgeHammer", "family": "K8" },
             # etallen's `cpuid` lists more entries here, but InstLatx64's
             # cpuid collection doesn't have samples to check against, so
             # skipping forward a few..
@@ -531,7 +540,8 @@ class CPUIDUarch:
             (0x10, 0): { "uarch": "", "family": "K10" },
             (0x10, 2): { "uarch": "Barcelona", "family": "K10" },
             (0x10, 4): { "uarch": "Deneb", "family": "K10" },
-            (0x10, 5): { "uarch": "", "family": "K10" },
+            # some Propus, at least one Rana too though.
+            (0x10, 5): { "uarch": "Propus", "family": "K10" },
             (0x10, 6): { "uarch": "Regor", "family": "K10" },
             (0x10, 8): { "uarch": "Istanbul", "family": "K10" },
             (0x10, 9): { "uarch": "Magny-Cours", "family": "K10" },
@@ -646,7 +656,7 @@ FEATURES = [
     CPUIDBoolFeature("Virtualized", "Running on a virtual processor",
         0x00000001, "ecx", 31),
     CPUIDFeature("Hypervisor leaves", "Microsoft Hypervisor CPUID leaves",
-        0x00000001,"eax", 0, 32),
+        0x40000000,"eax", 0, 32),
 
     CPUIDBoolFeature("monitor", "monitor/mwait instructions",
         0x00000001, "ecx", 3),
@@ -684,6 +694,9 @@ section_headers = {
         "------\[ MSR Registers / Logical CPU #([0-9]+) \]------": ("msrs", ParseState.MSRS),
         "------[ MSR Registers ]------": ("msrs", ParseState.MSRS),
         "MSR Registers \(CPU #(\d+)\)": ("msrs", ParseState.MSRS),
+        # `AuthenticAMD0040F12_K8_SantaRosa_CPUID_S8.txt` only has one MSR block
+        # to go with the 16 CPUs..
+        "MSR Registers": ("msrs", ParseState.MSRS),
         "PerformanceFrequency =.*": ("remainder", ParseState.REMAINDER)
 }
 
@@ -789,24 +802,66 @@ class AIDAInfo:
         self.parsed_features.append(feat_info)
 
     def proc_name(self):
+        family = self.feature("FamilyID").value
+        ext_family = self.feature("ExtendedFamilyID").value
+        if ext_family:
+            family += ext_family
+
+        model = self.feature("ModelID").value
+        ext_model = self.feature("ExtendedModelID").value
+        if ext_model:
+            model += ext_model
+
+        # especially for older processors, a brand string might be present but
+        # it might be insufficiently distinct to cohabitate with other
+        # processors from the same family - there were several models of K5
+        # processor, but their brand strings are all "AMD-K5(tm) Processor", for
+        # example. so, if we know the brand string isn't distinctive enough,
+        # list it here and append family/model. at that point, if it's still not
+        # unique, it might actually be a duplicate cpuid measurement.
+        needs_disambiguation = [
+            "AMD-K5(tm) Processor",
+            "AMD-K6tm w/ multimedia extensions",
+            "AMD-K6(tm) 3D processor",
+            "AMD-K6(tm)-III Processor",
+            "AMD Athlon(tm) Processor",
+            "AMD Duron(tm) processor",
+            "AMD Engineering Sample"
+        ]
+
         if self.cpuid_name:
-            return self.cpuid_name
+            if self.cpuid_name in needs_disambiguation:
+                return "{} family {:x}h/model {:x}h".format(
+                    self.cpuid_name, family, model
+                )
+            else:
+                return self.cpuid_name
         else:
-            family = self.feature("FamilyID").value
-            ext_family = self.feature("ExtendedFamilyID").value
-            if ext_family:
-                family += ext_family
-
-            model = self.feature("ModelID").value
-            ext_model = self.feature("ExtendedModelID").value
-            if ext_model:
-                model += ext_model
-
-            return "Unknown {} family {}h model {}h".format(
+            return "Unknown {} family {:x}h model {:x}h".format(
                 self.feature("vendor"),
                 family,
                 model
             )
+
+    # some processors in The Great CPUID Collection are actually measured from
+    # inside a VM. for many bits this is fine - ISA extensions are typically
+    # passed through, CPU/cache topology should still be accurate. but some bits
+    # and features, especially ones that do not make sense to a guest VM, like
+    # SVM capabilities or APIC management, may be incomplete, incorrect, or
+    # reflect virtualized hardware rather than a configuration of a physical
+    # processor.
+    #
+    # so, check a few ways we might spot a vitual processor reaading so we can
+    # set it aside.
+    def suspected_virtual(self):
+        feat = self.feature("Virtual")
+        if feat and feat.present and feat.value == 1:
+            return True
+        feat = self.feature("Hypervisor leaves")
+        if feat and feat.present and feat.value > 0:
+            return True
+
+        return False
 
     def __init__(self, text):
         global FEATURES
@@ -1041,7 +1096,7 @@ class AIDAInfo:
                                 # wrong. raise an error, though we don't
                                 # remember which leaf had duplicate entries.
                                 raise Exception("""duplicate cpuid leaves in \
-                                    {}""".format(sys.argv[1]))
+                                    {}""".format(sys.argv[3]))
 
                             if leaf not in cpuid_buf:
                                 cpuid_buf[leaf] = {}
@@ -1068,7 +1123,7 @@ class AIDAInfo:
                                         raise Exception(
                                             """duplicate cpuid subleaf: \
                                             {}/{} {}""".format(leaf, subleaf,
-                                                sys.argv[1]))
+                                                sys.argv[3]))
                             cpuid_buf[leaf][subleaf] = leaf_record
                         else:
                             if leaf in cpuid_buf:
@@ -1081,7 +1136,7 @@ class AIDAInfo:
                                 elif self.guessing_cpuid_subleaf_nr == False:
                                     raise Exception(
                                         "duplicate cpuid leaf: {} - {}".format(
-                                            sys.argv[1], leaf))
+                                            sys.argv[3], leaf))
 
                                 # ok, now for the fun. at this leaf we have
                                 # either a single entry we need to promote to a
@@ -1171,8 +1226,7 @@ class AIDAInfo:
                             break
 
             if not parsed:
-                raise Exception("unhandled line: {}, {}".format(line,
-                    sys.argv[1]))
+                raise Exception("unhandled line: {}".format(line))
         # read ------[ Versions ]------
 
         if 0 not in self.cpuid:
@@ -1207,9 +1261,12 @@ def add(dbpath, cpuid_filename):
 
     info = AIDAInfo(text)
 
+    cpu_table = db['cpus']
+
     cpu_features = db['cpu_features']
 
-    if db['cpus'].find_one(name=info.proc_name()):
+    if cpu_table.find_one(name=info.proc_name(),
+            virtual=info.suspected_virtual()):
         print("'{}' already exists?".format(info.proc_name()))
         sys.exit(0)
 
@@ -1231,10 +1288,12 @@ def add(dbpath, cpuid_filename):
 
     first_cpu_info = info.cpuid[0]
     leaf_0h = first_cpu_info[0]
-    cpu_id = db['cpus'].insert({
+    cpu_id = cpu_table.insert({
         "name": info.proc_name(),
         "cpuid_fms": leaf_0h['eax'],
         "family": fam_id,
+        "source": cpuid_filename,
+        "virtual": info.suspected_virtual(),
     })
 
     for feat in info.parsed_features:
@@ -1254,9 +1313,10 @@ def add(dbpath, cpuid_filename):
                 "feature": feat_id
             })
 
-def get_interesting(feat_names):
+def get_interesting(features):
     predicate = ' and '.join(
-        ["cpus.id in has_{}".format(f.replace(" ", "SP")) for f in feat_names]
+        ["cpus.id in has_{}".format(
+            f['name'].replace(" ", "SP")) for f in features]
     )
     interesting_ctes = """
     interesting as (
@@ -1270,19 +1330,44 @@ def get_interesting(feat_names):
     """
     return interesting_ctes.format(predicate)
 
-def get_predicate_cte(featname):
-    mangled = featname.replace(" ", "SP")
+def get_predicate_cte(featrule):
+    mangled = featrule['name'].replace(" ", "SP")
+    print(featrule['name'])
     return """
         has_{} as (
             select cpu_features.cpu from cpu_features
                 join features on cpu_features.feature=features.id
-            where features.name="{}" and features.value="1"
-        ),""".format(mangled, featname)
+            where features.name="{}" and features.value{}"{}"
+        ),""".format(mangled, featrule['name'], featrule['op'],
+                featrule['value'])
 
 def get_interesting_ctes(features):
-    predicates = [get_predicate_cte(feat) for feat in features]
+    pat = "([A-Za-z0-9 ]+)(:?(=|!=|>|<|>=|<=)([A-Za-z0-9]+))?"
 
-    return "with " + "".join(predicates) + get_interesting(features)
+    feature_rules = []
+
+    for feat in features:
+        feature_parse = re.match(pat, feat)
+
+        if not feature_parse:
+            raise Exception("can't parse feature test: '{}'".format(feat))
+
+        name = feature_parse.group(1)
+
+        op = feature_parse.group(3)
+        value = feature_parse.group(4)
+
+        if op is None:
+            op = "!="
+
+        if value is None:
+            value = "0"
+
+        feature_rules.append({ "name": name, "op": op, "value": value })
+
+    predicates = [get_predicate_cte(feat) for feat in feature_rules]
+
+    return "with " + "".join(predicates) + get_interesting(feature_rules)
 
 def cpus_with_query(features):
     return get_interesting_ctes(features) + \
