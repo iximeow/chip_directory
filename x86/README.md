@@ -93,6 +93,26 @@ have microcode updates to fix or work around errata.
 microcode updates can result in enabling or disabling whole features on a
 processor.
 
+another recent example of this phenomenon, from Intel this time, relates to
+`umonitor`/`umwait` instructions: this [MONITOR and UMONITOR Performance
+Guidance](https://www.intel.com/content/www/us/en/developer/articles/technical/software-security-guidance/technical-documentation/monitor-umonitor-performance-guidance.html)
+page says,
+
+> To address this, affected processors may disable UMONITOR address monitoring
+> by default. Disabling UMONITOR address monitoring means that a UMONITOR does
+> not set up an address monitor, which may prevent a subsequent UMWAIT from
+> entering a sleep state. It does not mean that the UMONITOR instruction is
+> disallowed or that the UMONITOR/UMWAIT CPUID enumeration, CPUID.7.0.ECX[5]
+> (WAITPKG) is not set. On some processors, this disabling occurs only when a
+> microcode update is loaded. Refer to CPUID Enumeration and Architectural MSRs
+> for more information.
+
+which is to say, processors affected by a `monitor`/`umonitor` misbehavior _may_
+disable the instruction as a result of a microcode update working around the
+issue by disabling that instruction. so! consulting CPUID on one
+silicon/microcode/motherboard revision may report different extensions from the
+same part on a different microcode or motherboard revision.
+
 because microcode packages are tied to specific model/family/steppings of
 processors, it's technically possible that silicon supporting a feature could be
 present on a processor which is only ever able to load microcode denying that
