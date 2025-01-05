@@ -1,4 +1,6 @@
 from enum import Enum
+import sqlite3
+import os
 import re
 import sys
 import struct
@@ -51,7 +53,7 @@ class CPUIDFeature:
         self.filter = filter
         self.value = None
 
-    def parse(self, info):
+    def parse(self, info, db):
         if self.filter and not self.filter(info):
             # TODO: parse a value anyway, just to see if it was non-zero
             return None
@@ -104,243 +106,6 @@ class CPUIDBoolFeature(CPUIDFeature):
         if self.value == 1:
             return self.shortname
 
-# this could and should be a .sql file that lives on its own and versioned
-# reasonably. it's just here because the first alternative i thought was storing
-# a .db file in git and that would have no granular revision history, so, don't
-# do that!
-CPU_UARCH_INFO = {
-    "Am486": {
-        "name": "Am486"
-    },
-    # the Am5x86 is reportedly an Am486 with some improvements (cache, process
-    # improvements leading to higher clocks).
-    "Am5x86": {
-        "name": "Am486",
-        "first": "1995-11-01"
-    },
-    "K5": {
-        "name": "K5",
-        "family": "K5",
-    },
-    "K6": {
-        "name": "K6",
-        "family": "K6"
-    },
-    "K6-2": {
-        "name": "K6-2",
-        "family": "K6"
-    },
-    "K6-III": {
-        "name": "K6-III",
-        "family": "K6"
-    },
-    "K6-III+": {
-        "name": "K6-III+",
-        "family": "K6"
-    },
-    "K7": {
-        "name": "K7",
-        "family": "K7"
-    },
-    "K7": {
-        "name": "K7",
-        "family": "K7"
-    },
-    "K75": {
-        "name": "K75",
-        "family": "K7"
-    },
-    "Morgan": {
-        "name": "Morgan",
-        "family": "K7"
-    },
-    "Palomino": {
-        "name": "Palomino",
-        "family": "K7"
-    },
-    "Spitfire": {
-        "name": "Spitfire",
-        "family": "K7"
-    },
-    "Thoroughbred": {
-        "name": "Thoroughbred",
-        "family": "K7"
-    },
-    "Thunderbird": {
-        "name": "Thunderbird",
-        "family": "K7"
-    },
-    "Barton": {
-        "name": "Barton",
-        "family": "K7"
-    },
-    "K8": {
-        "name": "K8",
-        "family": "K8"
-    },
-    "ClawHammer": {
-        "name": "ClawHammer",
-        "family": "K8"
-    },
-    "SledgeHammer": {
-        "name": "SledgeHammer",
-        "family": "K8"
-    },
-    "Winchester": {
-        "name": "Winchester",
-        "family": "K8"
-    },
-    "Manchester": {
-        "name": "Manchester",
-        "family": "K8"
-    },
-    # allegedly a wholly different design focused on low-power applications.
-    # could use better citations...
-    "Bobcat": {
-        "name": "Bobcat",
-        "family": "Bobcat"
-    },
-    "Jaguar": {
-        "name": "Jaguar",
-        "family": "Jaguar"
-    },
-    "Cato": {
-        "name": "Cato",
-        "family": "Jaguar"
-    },
-    "Puma": {
-        "name": "Puma",
-        "family": "Jaguar"
-    },
-    "K10": {
-        "name": "K10",
-        "family": "K10"
-    },
-    "Puma (2008)": {
-        "name": "Puma (2008)",
-        "family": "K10"
-    },
-    # the first of the AMD64 Opterons!
-    "Barcelona": {
-        "name": "Barcelona",
-        "family": "K10"
-    },
-    # first Phenom II
-    "Thuban": {
-        "name": "Thuban",
-        "family": "K10"
-    },
-    # Phenom II, and some Athlon X2
-    "Deneb": {
-        "name": "Deneb",
-        "family": "K10"
-    },
-    # Phenom II, but Weird
-    # https://www.techpowerup.com/98975/amd-athlon-ii-x4-propus-600-quad-core-chips-include-45w-models
-    "Propus": {
-        "name": "Propus",
-        "family": "K10"
-    },
-    # Phenom II (later on), some Athlon X2
-    "Regor": {
-        "name": "Regor",
-        "family": "K10"
-    },
-    # more Opteron
-    "Istanbul": {
-        "name": "Istanbul",
-        "family": "K10"
-    },
-    # end of the K10 Opteron era
-    "Magny-Cours": {
-        "name": "Magny-Cours",
-        "family": "K10"
-    },
-    "Bulldozer": {
-        "name": "Bulldozer",
-        "family": "Bulldozer"
-    },
-    "Excavator": {
-        "name": "Excavator",
-        "family": "Bulldozer"
-    },
-    "Piledriver": {
-        "name": "Piledriver",
-        "family": "Bulldozer"
-    },
-    "Steamroller": {
-        "name": "Steamroller",
-        "family": "Bulldozer"
-    },
-    # maybe one of the more interesting members of this series is
-    # DG02SRTBP4MFA, maybe an APU or something?
-    # https://wccftech.com/amd-fenghuang-apu-3dmark-specs-performance-leak/
-    "Zen": {
-        "name": "Zen",
-        "family": "Zen"
-    },
-    "Zen 2": {
-        "name": "Zen 2",
-        "family": "Zen"
-    },
-    "Zen 3": {
-        "name": "Zen 3",
-        "family": "Zen 3"
-    },
-    "Zen 4": {
-        "name": "Zen 4",
-        "family": "Zen 3"
-    },
-    "Zen 4c": {
-        "name": "Zen 4c",
-        "family": "Zen 3"
-    },
-    "Zen 5": {
-        "name": "Zen 5",
-        "family": "Zen 3"
-    }
-}
-
-# this could and should be a .sql file that lives on its own and versioned
-# reasonably. it's just here because the first alternative i thought was storing
-# a .db file in git and that would have no granular revision history, so, don't
-# do that!
-CPU_FAMILY_INFO = {
-    "Am486": {
-        "name": "Am486"
-    },
-    "K5": {
-        "name": "K5"
-    },
-    "K6": {
-        "name": "K6"
-    },
-    "K7": {
-        "name": "K7"
-    },
-    "K8": {
-        "name": "K8"
-    },
-    "K10": {
-        "name": "K10"
-    },
-    "Bobcat": {
-        "name": "Bobcat"
-    },
-    "Jaguar": {
-        "name": "Jaguar"
-    },
-    "Bulldozer": {
-        "name": "Bulldozer"
-    },
-    "Zen": {
-        "name": "Zen"
-    },
-    "Zen 3": {
-        "name": "Zen 3"
-    },
-}
-
 AMD_CPU_PRODUCT_INFO = {
     "Am5x86": {
         "datasheet": "https://datasheets.chipdb.org/AMD/486_5x86/19751C.pdf",
@@ -358,7 +123,7 @@ class CPUIDVendor:
         self.shortname = "vendor"
         self.longname = "CPUID-defined vendor string from leaf 0h"
 
-    def parse(self, info):
+    def parse(self, info, db):
         if 0x00000000 not in info.cpuid[0]:
             return None
 
@@ -378,7 +143,7 @@ class CPUIDUarch:
         self.longname = """Microarchitecture of the processor as informed by \
             Family/Model/Stepping fields"""
 
-    def parse(self, info):
+    def parse(self, info, db):
         if 0x00000000 not in info.cpuid[0]:
             return None
 
@@ -389,9 +154,9 @@ class CPUIDUarch:
         uarch_fam = None
 
         if vendorname == "AuthenticAMD":
-            uarch_fam = self.parse_amd(info)
+            uarch = self.parse_amd(info, db)
         elif vendorname == "GenuineIntel":
-            uarch_fam = self.parse_intel(info)
+            uarch = self.parse_intel(info, db)
 #        else:
 #            print("""cannot currently handle processors from vendor \
 #                    {}""".format(vendorname))
@@ -399,242 +164,47 @@ class CPUIDUarch:
         if uarch_fam is None:
             return
 
-        if "uarch" in uarch_fam:
-            info.add_feature(ParsedFeature(
-                "uarch", "CPUID-implied processor architecture",
-                uarch_fam["uarch"]
-            ))
+        info.add_feature(ParsedFeature(
+            "uarch", "CPUID-implied processor architecture",
+            uarch
+        ))
 
-        if "family" in uarch_fam:
-            info.add_feature(ParsedFeature(
-                "family", "CPUID-implied processor family", uarch_fam["family"]
-            ))
+        info.add_feature(ParsedFeature(
+            "family", "CPUID-implied processor family",
+            db['uarches'].find_one(id=uarch)['family']
+        ))
 
 
-    def parse_intel(self, info):
+    def parse_intel(self, info, db):
         return None
 #         raise Exception("Intel not supported yet")
 
-    def parse_amd(self, info):
+    def parse_amd(self, info, db):
         family = info.feature("FamilyID").value
         ext_family = info.feature("ExtendedFamilyID").value
-        if ext_family:
-            family += ext_family
 
         model = info.feature("ModelID").value
         ext_model = info.feature("ExtendedModelID").value
-        if ext_model:
-            model += ext_model
 
-        # upsettingly, sources here are scant. Todd Allen's `cpuid` describes
-        # all K6 family processors as K6 uarch, but with more specific synthetic
-        # family names. for most purposes i'm concerned about, uarch revisions,
-        # such as K6, K6-2, K6-III, should be distinct. similarly, revisions
-        # through the Athlon years are very informative, and on and on.
-        #
-        # pages like Wikipedia's `List of AMD K6 processors` are heavily sourced
-        # from cpu-world.com/CPUs/*, whose pages currently return text like:
-        # > Specifications pages and related web pages were taken down due to
-        # > ongoing content scraping.
-        # >
-        # > The pages will be back online once scraping stops.
-        #
-        # great.
-        #
-        # simultaneously, en.wikichip.org has been down for two weeks so it's
-        # not trivial to crosscheck any descriptions there either.
-        #
-        # great.
-        #
-        # so, at a high level this is informed by Todd Allen's descriptions,
-        # partially cross-checked by the "CPU Alias" reported by EVEREST or AIDA
-        # if a header is available in InstLatx64 dumps, as well as some checking
-        # against pages via internet archive.
+        fm = db.query("""\
+            select uarch from family_model_info join vendors on
+            family_model_info.vendor = vendors.id \
+            where \
+                vendors.name="AMD" and \
+                family_model_info.family={} and \
+                family_model_info.ext_family={} and \
+                family_model_info.model={} and \
+                family_model_info.ext_model={}""".format(
+            family, ext_family, model, ext_model))
 
-        # "uarch" and "family" are mushy distinctions. "uarch" tries to hew more
-        # closely to an actual description of a physical core that ships in a
-        # real product. "family" is a mushier distinction, which might be best
-        # described as a "descends-from" relationship. one could of course say
-        # that everything descends from the 8086 (or 8080, or 4004, or ..), but
-        # this is too broad to be truly informative. so "family" here is a fuzzy
-        # line like "more comprehensive change than just adding/expanding
-        # caches". practically speaking, for AMD cases, "family" in cpuid
-        # reflects this pretty well and tracks with their own branding/marketing
-        # of products.
-
-        amd_fm_uarchs = {
-            (4, 3): { "uarch": "Am486" },
-            (4, 7): { "uarch": "Am486" },
-            (4, 8): { "uarch": "Am486" },
-            (4, 9): { "uarch": "Am486" },
-            # https://datasheets.chipdb.org/AMD/486_5x86/19751C.pdf
-            # page 56 describes CPUID model/family bits for AMD 5x86
-            # processors. this is slightly more precise than `cpuid`.
-            (4, 0xe): { "uarch": "Am5x86" },
-            (4, 0xf): { "uarch": "Am5x86" },
-            0x4: { "family": "K5" },
-            # cpu-world.com and EVEREST agree F=5/M={0,1} is K5
-            # cpuid does not mention these
-            (5, 0): { "uarch": "K5" },
-            (5, 1): { "uarch": "K5" },
-            # cpu-world.com, EVEREST, and cpuid all agree these are K6
-            # though.
-            (5, 6): { "uarch": "K6", "family": "K6" },
-            (5, 7): { "uarch": "K6", "family": "K6" },
-            # back on our own..
-            (5, 8): { "uarch": "K6-2", "family": "K6" },
-            (5, 9): { "uarch": "K6-III", "family": "K6" },
-            # what about models a-c?
-            # "K6-2+" was also family 5/model D, donthough InstLatx64 has
-            # one record of a K6-2+ which can be distinguished only by
-            # stepping (4, rather than 0). not bothering with that
-            # distiction here.
-            (5, 0xd): { "uarch": "K6-III+", "family": "K6" },
-            0x5: { "family": "K6" },
-            (6, 1): { "uarch": "K7", "family": "K7" },
-            (6, 2): { "uarch": "K75", "family": "K7" },
-            (6, 3): { "uarch": "Spitfire", "family": "K7" },
-            (6, 4): { "uarch": "Thunderbird", "family": "K7" },
-            (6, 6): { "uarch": "Palomino", "family": "K7" },
-            (6, 7): { "uarch": "Morgan", "family": "K7" },
-            # InstLatx86 has a Thoroughbred as stepping 0, Appelbred as
-            # stepping 1. no stepping distinguisher here though, yet
-            (6, 8): { "uarch": "Thoroughbred", "family": "K7" },
-            (6, 10): { "uarch": "Barton", "family": "K7" },
-            0x6: { "family": "K7" },
-            # reportedly K8 and K7 are very similar, just that K8 also has
-            # the minor addition of "x86-64". i've not found much to
-            # substantiate this, so [citation needed] as it were.
-            (0xf, 0x4): { "uarch": "ClawHammer", "family": "K8" },
-            (0xf, 0x5): { "uarch": "SledgeHammer", "family": "K8" },
-            # etallen's `cpuid` lists more entries here, but InstLatx64's
-            # cpuid collection doesn't have samples to check against, so
-            # skipping forward a few..
-
-            # cpuid leaf 1 eax has `2` in Extended Model ID but model is
-            # <0xf?
-            (0xf, 0xb): { "uarch": "Manchester", "family": "K8" },
-            # notably cpuid leaf 1 eax has a `1` in Extended Model ID for
-            # this sample, but the model is 0xc rather than 0xf, so extended
-            # model should be unused..?
-            (0xf, 0xc): { "uarch": "Winchester", "family": "K8" },
-            # "AuthenticAMD0010FF0_K8_Palermo_CPUID.txt" claims to be
-            # Palermo, but so does 00020FC2. and Venice claims to be
-            # 00020FF0.
-            0xf: { "family": "K8" },
-            # K10 is a really great example of how "uarch" is reductive,
-            # probably should just use the word "model", or swap "family" and
-            # "uarch" though that might conflict with what The Rest Of The World
-            # means by those things. these processors' *cores* are all largely
-            # the same (e.g. "K10"), and the variation between them seems to be
-            # more due to process changes (transistor size shrining, changes to
-            # whatever the predecessor to the SMU/PSP were). Turbo core was
-            # added in the K10 family of parts but that also is not a core
-            # change so much as a "microcontroller controlling the core"..
-            #
-            # another problem that's really dramatic in the K10 era is that
-            # production parts have the same family/model for different product
-            # segments. family 10h model 2 is *not* just "Opteron", but to
-            # detect exactly which segment a processor is in you apparently need
-            # to consult the brand string to know Opteron, Athlon, etc
-            (0x10, 0): { "uarch": "", "family": "K10" },
-            (0x10, 2): { "uarch": "Barcelona", "family": "K10" },
-            (0x10, 4): { "uarch": "Deneb", "family": "K10" },
-            # some Propus, at least one Rana too though.
-            (0x10, 5): { "uarch": "Propus", "family": "K10" },
-            (0x10, 6): { "uarch": "Regor", "family": "K10" },
-            (0x10, 8): { "uarch": "Istanbul", "family": "K10" },
-            (0x10, 9): { "uarch": "Magny-Cours", "family": "K10" },
-            (0x10, 10): { "uarch": "Thuban", "family": "K10" },
-            # not sure InstLatx64 has samples here.. wikipedia also notes these
-            # as "Turion X2 Ultra
-            0x11: { "uarch": "Puma (2008)", "family": "K10" },
-            # double check A8-3850
-            0x12: { "uarch": "Puma (2008)", "family": "K10" },
-            0x14: { "uarch": "Bobcat", "family": "Bobcat" },
-            # iteration on Bobcat, still all distinct from the construction
-            # machine architectures.
-            (0x16, 0): { "uarch": "Jaguar", "family": "Jaguar" },
-            # not widely released..
-            (0x16, 2): { "uarch": "Cato", "family": "Jaguar" },
-            (0x16, 8): { "uarch": "Cato", "family": "Jaguar" },
-            # distinct from the model 11h Puma! this was more widely shipping.
-            (0x16, 3): { "uarch": "Puma", "family": "Jaguar" },
-
-            # bulldozer/piledriver/steamroller/excavator
-            (0x15, 0): { "uarch": "Bulldozer", "family": "Bulldozer" },
-            (0x15, 1): { "uarch": "Piledriver", "family": "Bulldozer" },
-            # double check. FX-8350
-            (0x15, 2): { "uarch": "Piledriver", "family": "Bulldozer" },
-            (0x15, 3): { "uarch": "Steamroller", "family": "Bulldozer" },
-            (0x15, 4): { "uarch": "Steamroller", "family": "Bulldozer" },
-            (0x15, 6): { "uarch": "Excavator", "family": "Bulldozer" },
-            (0x15, 7): { "uarch": "Excavator", "family": "Bulldozer" },
-
-            # double check. A12-9800 etc
-            (0x15, 0xb): { "uarch": "Excavator", "family": "Bulldozer" },
-
-            # Zen and onward. this is a bit funky because AMD describes Zen,
-            # Zen_, and Zen 2 together in "Revision Guide for AMD Family 17h
-            # Models 00h-0Fh Processors" publication 55449. evidence towards
-            # their similarity, i suppose?
-            # anyway, `cpuid`'s approach is to encode which specific models were
-            # which architecture, probably good enough here too.
-            (0x17, 0): { "uarch": "Zen", "family": "Zen" },
-            (0x17, 1): { "uarch": "Zen", "family": "Zen" },
-            (0x17, 2): { "uarch": "Zen", "family": "Zen" },
-            (0x17, 3): { "uarch": "Zen 2", "family": "Zen" },
-            # other fam 17h models not mentioned above are... probably Zen 2?
-            0x17: { "uarch": "Zen 2", "family": "Zen" },
-
-            # mostly by vibes: Zen 3 seems distinct enough from Zen/Zen 2 to be
-            # a new "family".
-            (0x19, 0): { "uarch": "Zen 3", "family": "Zen 3" },
-            # though Zen 4 was a refresh on Zen 3 rather than substantially
-            # different
-            (0x19, 1): { "uarch": "Zen 4", "family": "Zen 3" },
-            (0x19, 2): { "uarch": "Zen 3", "family": "Zen 3" },
-            (0x19, 3): { "uarch": "Zen 3", "family": "Zen 3" },
-            (0x19, 4): { "uarch": "Zen 3", "family": "Zen 3" },
-            (0x19, 5): { "uarch": "Zen 3", "family": "Zen 3" },
-            (0x19, 6): { "uarch": "Zen 4", "family": "Zen 3" },
-            (0x19, 7): { "uarch": "Zen 4", "family": "Zen 3" },
-            (0x19, 8): { "uarch": "Zen 4", "family": "Zen 3" },
-            (0x19, 9): { "uarch": "Zen 4", "family": "Zen 3" },
-            (0x19, 10): { "uarch": "Zen 4c", "family": "Zen 3" },
-
-
-            # at least Ryzen 9 7940H w/ Radeon 780M?
-            (0x19, 11): { "uarch": "Zen 4", "family": "Zen 3" },
-            # at least Ryzen 9 7940H
-            (0x19, 12): { "uarch": "Zen 4", "family": "Zen 3" },
-            # at least Ryzen 7 8700G
-            (0x19, 13): { "uarch": "Zen 4", "family": "Zen 3" },
-            (0x19, 15): { "uarch": "Zen 4", "family": "Zen 3" },
-
-            # allegedly a "ground up redesign" of zen 3, i don't know how
-            # similar or different this is from zen 3/4 yet though.
-            (0x1a, 0): { "uarch": "Zen 5", "family": "Zen 3" },
-            (0x1a, 1): { "uarch": "Zen 5", "family": "Zen 3" },
-            (0x1a, 2): { "uarch": "Zen 5", "family": "Zen 3" },
-            (0x1a, 3): { "uarch": "Zen 5", "family": "Zen 3" },
-            (0x1a, 4): { "uarch": "Zen 5", "family": "Zen 3" },
-            (0x1a, 5): { "uarch": "Zen 5", "family": "Zen 3" },
-            (0x1a, 6): { "uarch": "Zen 5", "family": "Zen 3" },
-            (0x1a, 7): { "uarch": "Zen 5", "family": "Zen 3" },
-            (0x1a, 8): { "uarch": "Zen 5", "family": "Zen 3" },
-
-        }
-
-        if (family, model) in amd_fm_uarchs:
-            return amd_fm_uarchs[(family, model)]
-        elif family in amd_fm_uarchs:
-            return amd_fm_uarchs[family]
-        else:
-            print("unknown family and/or model: {:x}h/{:x}h".format(family,
-                model))
+        try:
+            fm = fm.next()
+            fm = fm['uarch']
+        except:
+            print("unknown family and/or model: {:x}h+{:x}h/{:x}h+{:x}".format(
+                family, ext_family,
+                model, ext_model))
             print("  {}".format(info.cpuid_name))
-            return { "family": "unknown ({:x})/{:x})".format(family, model) }
 
 FEATURES = [
     CPUIDBoolFeature("PCLMULDQ", "PCLMULDQ", 0x00000001, "ecx", 1),
@@ -863,7 +433,7 @@ class AIDAInfo:
 
         return False
 
-    def __init__(self, text):
+    def __init__(self, db, text):
         global FEATURES
         state = ParseState.HEADER
         self.name = None
@@ -1251,15 +821,22 @@ class AIDAInfo:
 
         self.parsed_features = []
         for feature in FEATURES:
-            parsed = feature.parse(self)
+            parsed = feature.parse(self, db)
             if parsed:
                 self.parsed_features.append(parsed)
 
+def init_db(dbpath):
+    connection = sqlite3.connect("{}".format(dbpath))
+    connection.cursor().executescript(open("product_info.sql", "r").read())
+
 def add(dbpath, cpuid_filename):
+    if not os.path.isfile(dbpath):
+        init_db(dbpath)
+
     text = open(cpuid_filename, "r").readlines()
     db = dataset.connect("sqlite:///{}".format(dbpath))
 
-    info = AIDAInfo(text)
+    info = AIDAInfo(db, text)
 
     cpu_table = db['cpus']
 
@@ -1267,24 +844,12 @@ def add(dbpath, cpuid_filename):
 
     if cpu_table.find_one(name=info.proc_name(),
             virtual=info.suspected_virtual()):
-        print("'{}' already exists?".format(info.proc_name()))
+#        print("'{}' already exists?".format(info.proc_name()))
         sys.exit(0)
 
-    fam = info.feature("family")
-    fam_id = None
-    if fam:
-        fam_id = db['families'].find_one(name=fam.value)
-        if fam_id is None:
-            db['families'].insert(CPU_FAMILY_INFO[fam.value])
-        fam_id = db['families'].find_one(name=fam.value)["id"]
+    fam_id = info.feature("family")
 
-    uarch = info.feature("uarch")
-    uarch_id = None
-    if uarch:
-        uarch_id = db['uarches'].find_one(name=uarch.value)
-        if uarch_id is None:
-            db['uarches'].insert(CPU_UARCH_INFO[uarch.value])
-        uarch_id = db['uarches'].find_one(name=uarch.value)["id"]
+    uarch_id = info.feature("uarch")
 
     first_cpu_info = info.cpuid[0]
     leaf_0h = first_cpu_info[0]
@@ -1292,6 +857,7 @@ def add(dbpath, cpuid_filename):
         "name": info.proc_name(),
         "cpuid_fms": leaf_0h['eax'],
         "family": fam_id,
+        "uarch": uarch_id,
         "source": cpuid_filename,
         "virtual": info.suspected_virtual(),
     })
