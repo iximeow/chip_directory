@@ -28,7 +28,7 @@ historically), it's much more useful to say for example, "all Zen processors
 support ..." than to say "all Zen processors except this early-release
 engineering sample two people have".
 
-even so, interpreting a bit's value in an MSR or cPUID (sub)leaf is not always
+even so, interpreting a bit's value in an MSR or CPUID (sub)leaf is not always
 straightforward; it's the result of an intersection between:
 
 * silicon capability
