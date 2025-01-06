@@ -66,10 +66,18 @@ class CPUIDFeature:
 
         top_level = info.cpuid[0][self.leaf]
         leaf = None
-        if self.subleaf:
-            leaf = top_level[self.subleaf]
+        if self.subleaf is not None:
+            if self.subleaf in top_level:
+                leaf = top_level[self.subleaf]
+            else:
+                return None
         else:
             leaf = top_level
+
+        if self.reg not in leaf:
+            if not isinstance(leaf, dict):
+                raise Exception("""{} does not describe a subleaf, but leaf \
+                    {:x} has subleaves?""".format(self.shortname, self.leaf))
 
         reg = leaf[self.reg]
 
