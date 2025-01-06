@@ -178,7 +178,7 @@ class CPUIDUarch:
 
         vendorname = info.feature("vendor").value
 
-        uarch_fam = None
+        uarch = None
 
         if vendorname == "AuthenticAMD":
             uarch = self.parse_amd(info, db)
@@ -188,7 +188,7 @@ class CPUIDUarch:
 #            print("""cannot currently handle processors from vendor \
 #                    {}""".format(vendorname))
 
-        if uarch_fam is None:
+        if uarch is None:
             return
 
         info.add_feature(ParsedFeature(
@@ -250,6 +250,7 @@ class CPUIDUarch:
         try:
             fm = fm.next()
             fm = fm['uarch']
+            return fm
         except:
             print("unknown family and/or model: {:x}h+{:x}h/{:x}h+{:x}".format(
                 family, ext_family,
@@ -1141,9 +1142,9 @@ def add(dbpath, cpuid_filename):
 #        print("'{}' already exists?".format(info.proc_name()))
         sys.exit(0)
 
-    fam_id = info.feature("family")
+    fam_id = info.feature("family").value
 
-    uarch_id = info.feature("uarch")
+    uarch_id = info.feature("uarch").value
 
     first_cpu_info = info.cpuid[0]
     leaf_0h = first_cpu_info[0]
