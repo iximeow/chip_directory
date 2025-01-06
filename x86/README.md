@@ -8,6 +8,21 @@ would be to know what CPUID readings describe processors in which market
 segments, and which processors are unreleased/prerelease versus being
 intentional product releases to general (non-OEM) parties.
 
+as an example of this right now, acknowledging that there is no Intel family
+info yet and so only descriptive of AMD, you can ask "what processor families
+have AVX2?" with...
+```
+> for f in InstLatx64/AuthenticAMD/AuthenticAMD*CPUID*.txt; do
+>   python3 explode_features.py add info.db $f
+> done
+
+> python3 explode_features.py families-with info.db AVX2
+Zen
+Zen 3
+```
+
+... for entirely arbitrary reasons, i decided that Zen 2 rounds to Zen, and both Zen 4 and 5 round to Zen 3. this should probably be revisited.
+
 while early/unreleased/OEM configurations are interesting (both technically and
 historically), it's much more useful to say for example, "all Zen processors
 support ..." than to say "all Zen processors except this early-release
