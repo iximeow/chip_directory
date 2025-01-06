@@ -1079,8 +1079,13 @@ class AIDAInfo:
 
                             name = next_name
                             state = next_state
-                            self.cpuid[cpunum] = {}
-                            cpuid_buf = self.cpuid[cpunum]
+                            if next_state == ParseState.CPUID:
+                                self.cpuid[cpunum] = {}
+                                cpuid_buf = self.cpuid[cpunum]
+                            else:
+                                # non-cpuid state up next. probably MSRs.
+                                # HELP! handle MSRs!!!
+                                pass
                             parsed = True
                             break
 
