@@ -8,7 +8,13 @@ features.
 contributions very welcome but exactly what or how to contribute is a mess for now.
 
 this is largely, currently, notes and scraps, but statements and facts should
-have citations where possible. i'd like to include relevant reference materials here as well, though PDFs in the repo are not gonna be great.
+have citations where possible. i'd like to include relevant reference materials
+here as well, though PDFs in the repo are not gonna be great.
+
+if you see `HELP!` anywhere in here, that's somewhere i'd love help! they
+probably should have issues, but i might not have written issues. this ranges
+from "i don't have good citations for this" to "Intel family/model names
+aren't catalogued well"
 
 ### x86
 
