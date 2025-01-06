@@ -256,8 +256,253 @@ class CPUIDUarch:
                 model, ext_model))
             print("  {}".format(info.cpuid_name))
 
-FEATURES = [
+ISA_EXTENSIONS = [
+    # the following are from the AMD Architecture Programmer's Manual Volume 3,
+    # table D2. Document 24594 Rev 3.36 (March 2024).
+    CPUIDBoolFeature("3DNow", "3DNow!", 0x80000001, "edx", 31),
+    CPUIDBoolFeature("3DNowExt", "3DNow! Extensions", 0x80000001, "edx", 30),
+    CPUIDBoolFeature("3DNowPrefetch", """Prefetch instructions from 3DNow!, \
+    PREFETCH and PREFETCHW""", 0x80000001, "ecx", 8),
+    CPUIDBoolFeature("3DNowPrefetch", """Prefetch instructions from 3DNow!, \
+    PREFETCH and PREFETCHW""", 0x80000001, "edx", 29),
+    CPUIDBoolFeature("3DNowPrefetch", """Prefetch instructions from 3DNow!, \
+    PREFETCH and PREFETCHW""", 0x80000001, "edx", 31),
+    # so the story i gather is, AMD introduced ABM, but somehow presence of the
+    # ABM instructions was moved to be indicated by the BMI1 bit, and the ABM
+    # bit just indicates (for both Intel and AMD) if LZCNT is not BSR...?
+    #
+    # HELP! if true this means some processor indicates more than just LZCNT
+    # with this bit..
+    CPUIDBoolFeature("ABM", "Advanced Bit Manipulation (just LZCNT though)",
+        0x80000001, "ecx", 5),
+    # distinct from CLFSH?? and the APM also reports this at eax=7 ecx=0 bit 24
+    # like SDM..
+    CPUIDBoolFeature("CLWB", "CLWB", 0x80000008, "ebx", 0),
+    CPUIDBoolFeature("F16C", "16-bit floating-point conversion", 0x00000001,
+        "ecx", 29),
+    CPUIDBoolFeature("FMA4", "FMA4", 0x80000001, "ecx", 16),
+    CPUIDBoolFeature("FPU", "x87", 0x80000001, "edx", 0),
+    CPUIDBoolFeature("INVLPGB", "INVLPGB/TLBSYNC", 0x80000008, "ebx", 3),
+    CPUIDBoolFeature("LahfSahf", "LAHF/SAHF", 0x80000001, "ecx", 0),
+    CPUIDBoolFeature("LM", "Long Mode (AMD64)", 0x80000001, "edx", 29),
+    CPUIDBoolFeature("MCOMMIT", "MCOMMIT", 0x80000008, "ebx", 8),
+    CPUIDBoolFeature("MmxExt", "MMX Extensions", 0x80000001, "edx", 22),
+    CPUIDBoolFeature("MONITORX", "MONITORX/MWAITX", 0x80000001, "ecx", 29),
+    CPUIDBoolFeature("RDPRU", "RDPRU", 0x80000008, "ebx", 4),
+    CPUIDBoolFeature("RDTSCP", "RDTSCP", 0x80000001, "edx", 27),
+    CPUIDBoolFeature("SevEs", "VMGEXIT", 0x8000001f, "eax", 3),
+    CPUIDBoolFeature("SKINIT", "SKINIT/STGI", 0x80000001, "ecx", 12),
+    CPUIDBoolFeature("SMAP", "CLAC/STAC", 0x00000017, "ebx", 20),
+    CPUIDBoolFeature("SNP (4)", """PSMASH/PVALIDATE/RMPADJUST/RMPUPDATE""",
+        0x8000001f, "eax", 4),
+    CPUIDBoolFeature("SNP (6)", "RMPQUERY", 0x8000001f, "eax", 6),
+    CPUIDBoolFeature("SNP (21)", "RMPREAD", 0x8000001f, "eax", 21),
+    CPUIDBoolFeature("SSE4A", "SSE4A", 0x80000001, "ecx", 6),
+    CPUIDBoolFeature("SVM", "Secure Virtual Machine", 0x80000001, "ecx", 2),
+    CPUIDBoolFeature("SysCallSysRet", "SYSCALL/SYSRET", 0x80000001, "edx", 11),
+    CPUIDBoolFeature("TBM", "Trailing bit manipulation", 0x80000001, "ecx", 21),
+    # needs two different bits set, so special parsing logic..
+    CPUIDFCMOV(),
+    CPUIDBoolFeature("XOP", "XOP", 0x80000001, "ecx", 11),
+    CPUIDBoolFeature("XSAVEC", "XSAVEC", 0x0000000d, "eax", 1, subleaf=1),
+    CPUIDBoolFeature("XSAVEOPT", "XSAVEOPT", 0x0000000d, "eax", 0, subleaf=1),
+    CPUIDBoolFeature("XSAVES/XRSTORS", "XSAVES/XRSTORS", 0x0000000d, "eax", 3,
+        subleaf=1),
+
+    # the following come from the Intel SDM. there, extensions are included in
+    # "Table 3-17. Information Returned by CPUID Instruction", under
+    # documentation for the CPUID instruction. documentation for leaf 1 feature
+    # bits are in later figures as well..
+    # HELP! which instructions does this relate to?
+    CPUIDBoolFeature("VMX", "processor supports Virtual Machine Extensions",
+        0x00000001, "ecx", 5),
+    # HELP! which instructions does this relate to?
+    CPUIDBoolFeature("SMX", "processor supports Safer Mode Extensions",
+        0x00000001, "ecx", 6),
+
+    CPUIDBoolFeature("MPX", "Memory Protection Extensions", 0x00000007,
+        "ebx", 14, subleaf=0),
+    CPUIDBoolFeature("AVX512F", "AVX512F", 0x00000007,
+        "ebx", 16, subleaf=0),
+    CPUIDBoolFeature("AVX512DQ", "AVX512DQ", 0x00000007,
+        "ebx", 17, subleaf=0),
+    CPUIDBoolFeature("AVX512_IFMA", "AVX512_IFMA", 0x00000007,
+        "ebx", 21, subleaf=0),
+    CPUIDBoolFeature("AVX512PF", "AVX512PF", 0x00000007,
+        "ebx", 26, subleaf=0),
+    CPUIDBoolFeature("AVX512ER", "AVX512ER", 0x00000007,
+        "ebx", 27, subleaf=0),
+    CPUIDBoolFeature("AVX512CD", "AVX512CD", 0x00000007,
+        "ebx", 28, subleaf=0),
+    CPUIDBoolFeature("AVX512BW", "AVX512BW", 0x00000007,
+        "ebx", 30, subleaf=0),
+    CPUIDBoolFeature("AVX512VL", "AVX512VL", 0x00000007,
+        "ebx", 31, subleaf=0),
+
+    CPUIDBoolFeature("PREFETCHWT1", "PREFETCHWT1", 0x00000007,
+        "ecx", 0, subleaf=0),
+    CPUIDBoolFeature("AVX512_VBMI", "AVX512_VBMI", 0x00000007,
+        "ecx", 1, subleaf=0),
+    CPUIDBoolFeature("WAITPKG", "umonitor/umwait support", 0x00000007,
+        "ecx", 5, subleaf=0),
+    CPUIDBoolFeature("AX512_VBMI2", "AVX512_VBMI2", 0x00000007,
+        "ecx", 6, subleaf=0),
+    CPUIDBoolFeature("GFNI", "GFNI", 0x00000007,
+        "ecx", 8, subleaf=0),
+    CPUIDBoolFeature("AVX512_VNNI", "AVX512_VNNI", 0x00000007,
+        "ecx", 11, subleaf=0),
+    CPUIDBoolFeature("AVX512_BITALG", "AVX512_BITALG", 0x00000007,
+        "ecx", 12, subleaf=0),
+    CPUIDBoolFeature("AVX512_VPOPCNTDQ", "AVX512_VPOPCNTDQ", 0x00000007,
+        "ecx", 14, subleaf=0),
+    CPUIDBoolFeature("KL", "Key Locker support", 0x00000007,
+        "ecx", 23, subleaf=0),
+    CPUIDBoolFeature("CLDEMOTE", "Cache line demote support", 0x00000007,
+        "ecx", 25, subleaf=0),
+    CPUIDBoolFeature("MOVDIRI", "MOVDIRI supported", 0x00000007,
+        "ecx", 27, subleaf=0),
+    CPUIDBoolFeature("MOVDIR64B", "MOVDIR64B supported", 0x00000007,
+        "ecx", 28, subleaf=0),
+    CPUIDBoolFeature("ENQCMD", "Enqueue Stores support (ENQCMD instruction)",
+        0x00000007, "ecx", 28, subleaf=0),
+
+    CPUIDBoolFeature("AVX512_4VNNIW", "AVX512_4VNNIW",
+        0x00000007, "edx", 2, subleaf=0),
+    CPUIDBoolFeature("AVX512_4FMAPS", "AVX512_4FMAPS",
+        0x00000007, "edx", 3, subleaf=0),
+    CPUIDBoolFeature("AVX512_VP2INTERSECT", "AVX512_VP2INTERSECT",
+        0x00000007, "edx", 8, subleaf=0),
+    CPUIDBoolFeature("SERIALIZE", "serialize instruction supported",
+        0x00000007, "edx", 14, subleaf=0),
+    CPUIDBoolFeature("PCONFIG", "PCONFIG instruction supported",
+        0x00000007, "edx", 18, subleaf=0),
+    CPUIDBoolFeature("AMX-BF16", "AMX operations supported on bfloat 16",
+        0x00000007, "edx", 22, subleaf=0),
+    CPUIDBoolFeature("AVX512_FP16", "AVX512_FP16",
+        0x00000007, "edx", 23, subleaf=0),
+    CPUIDBoolFeature("AMX-TILE", "AMX operations supports tile architecture",
+        0x00000007, "edx", 24, subleaf=0),
+    CPUIDBoolFeature("AMX-INT8", "AMX operations supported on 8-bit integers",
+        0x00000007, "edx", 25, subleaf=0),
+
+    CPUIDBoolFeature("AVX-VNNI", "AVX-VNNI",
+        0x00000007, "eax", 4, subleaf=1),
+    CPUIDBoolFeature("AVX512_BF16", "AVX512_BF16",
+        0x00000007, "eax", 5, subleaf=1),
+    CPUIDBoolFeature("HRESET", "HRESET instruction support",
+        0x00000007, "eax", 22, subleaf=1),
+
+    # the following have the same definitions in both Intel SDM and AMD APM.
+    # they are generally ordered in Intel's order because i wrote feature
+    # definitions for AMD first, then hoisted as i saw matching definitions in
+    # the SDM.
+    CPUIDBoolFeature("SSE3", "SSE3", 0x00000001, "ecx", 0),
     CPUIDBoolFeature("PCLMULDQ", "PCLMULDQ", 0x00000001, "ecx", 1),
+    CPUIDBoolFeature("monitor", "monitor/mwait instructions", 0x00000001,
+        "ecx", 3),
+    CPUIDBoolFeature("SSSE3", "SSSE3", 0x00000001, "ecx", 9),
+    CPUIDBoolFeature("FMA", "FMA", 0x00000001, "ecx", 12),
+    CPUIDBoolFeature("CMPXCHG16B", "CMPXCHG16B", 0x00000001, "ecx", 13),
+    CPUIDBoolFeature("SSE41", "SSE4.1", 0x00000001, "ecx", 19),
+    CPUIDBoolFeature("SSE42", "SSE4.2", 0x00000001, "ecx", 20),
+    CPUIDBoolFeature("MOVBE", "MOVBE", 0x00000001, "ecx", 22),
+    CPUIDBoolFeature("POPCNT", "POPCNT", 0x00000001, "ecx", 23),
+    CPUIDBoolFeature("AES", "AESNI?", 0x00000001, "ecx", 25),
+    CPUIDBoolFeature("XSAVE", "XSAVE/XRSTOR", 0x00000001, "ecx", 26),
+    CPUIDBoolFeature("AVX", "Advanced Vector Extensions", 0x00000001, "ecx", 28),
+    CPUIDBoolFeature("F16C", "floating-point 16-bit conversions", 0x00000001,
+        "ecx", 29),
+    CPUIDBoolFeature("RDRAND", "RDRAND", 0x00000001, "ecx", 30),
+
+    CPUIDBoolFeature("TSC", "RDTSC", 0x00000001, "edx", 4),
+    CPUIDBoolFeature("MSR", "RDMSR/WRMSR", 0x00000001, "edx", 5),
+    CPUIDBoolFeature("CMPXCHG8B", "CMPXCHG8B", 0x00000001, "edx", 8),
+    CPUIDBoolFeature("SysEnterSysRet", """sysenter/sysret instructions. Intel \
+        calls these "sysenter" and "sysexit". this bit also indicates \
+        related MSRs (HELP! WHICH?) are present.""", 0x00000001, "edx", 11),
+    CPUIDBoolFeature("CMOV", "CMOVcc", 0x00000001, "edx", 15),
+    CPUIDBoolFeature("CLFSH", "CLFLUSH/CLWB", 0x00000001, "edx", 19),
+    CPUIDBoolFeature("MMX", "MMX", 0x00000001, "edx", 23),
+    CPUIDBoolFeature("FXSR", "FXSAVE/FXRSTOR", 0x00000001, "edx", 24),
+    CPUIDBoolFeature("SSE", "SSE1", 0x00000001, "edx", 25),
+    CPUIDBoolFeature("SSE2", "SSE2", 0x00000001, "edx", 26),
+
+    CPUIDBoolFeature("FSGSBASE", """instruction for FS/GS base read/write \
+        (instead of RDMSR/WRMSR)""", 0x00000007, "ebx", 0, subleaf=0),
+    CPUIDBoolFeature("BMI1", "Bit manipulation group 1 instructions",
+        0x00000007, "ebx", 3, subleaf=0),
+    CPUIDBoolFeature("AVX2", "Advanced Vector Extensions 2", 0x00000007,
+        "ebx", 5, subleaf=0),
+    CPUIDBoolFeature("BMI2", "Bit Manipulation, group 2", 0x00000007,
+        "ebx", 8, subleaf=0),
+    CPUIDBoolFeature("INVPCID", "INVPCID", 0x00000007, "ebx", 10, subleaf=0),
+    CPUIDBoolFeature("RDSEED", "RDSEED", 0x00000007, "ebx", 18, subleaf=1),
+    CPUIDBoolFeature("ADX", "ADCX/ADOX", 0x00000007, "ebx", 19, subleaf=0),
+    CPUIDBoolFeature("CLFLOPT", "CLFLUSHOPT", 0x00000007, "ebx", 23, subleaf=0),
+    CPUIDBoolFeature("SHA", "SHA", 0x00000007, "ebx", 29, subleaf=0),
+
+    CPUIDBoolFeature("OSPKE", "RDPKRU/WRPKRU", 0x00000007, "ecx", 4, subleaf=0),
+    CPUIDBoolFeature("CET_SS", """Control-flow Enforcement Technology - Shadow \
+        Stack""", 0x00000007, "ecx", 7, subleaf=0),
+    CPUIDBoolFeature("VAES", "VAES 256-bit instructions", 0x00000007, "ecx", 9,
+        subleaf=0),
+    CPUIDBoolFeature("VPCLMULQDQ", "VPCLMULQDQ 256-bit instructions",
+        0x00000007, "ecx", 10, subleaf=0),
+    CPUIDBoolFeature("RDPID", "RDPID", 0x00000007, "ecx", 22, subleaf=0),
+]
+
+# more features from the SDM, table 3-17.
+# HELP! i've skipped a lot of bits here.
+INTEL_FEATURES = [
+    CPUIDBoolFeature("EIST", """processor supports Enhanced Intel SpeedStep \
+        Technology""", 0x00000001, "ecx", 7),
+    CPUIDBoolFeature("TM2", "Thermal Monitor 2", 0x00000001, "ecx", 8),
+
+    CPUIDFeature("monitor-min", "minimum size of a MONITOR line in bytes",
+        0x00000005, "eax", 0, 16),
+    CPUIDFeature("monitor-max", "maximum size of a MONITOR line in bytes",
+        0x00000005, "ebx", 0, 16),
+    CPUIDFeature("mwait-break-on-int", """mwait can be set to break on \
+        interrupt even when interrupts are disabled""", 0x00000005, "ebx", \
+        0, 16),
+    CPUIDFeature("C0 substates", """Number of supported C0 sub-states \
+        supported by MWAIT""", 0x00000005, "edx", 0, 4),
+    CPUIDFeature("C1 substates", """Number of supported C1 sub-states \
+        supported by MWAIT""", 0x00000005, "edx", 4, 4),
+    CPUIDFeature("C2 substates", """Number of supported C2 sub-states \
+        supported by MWAIT""", 0x00000005, "edx", 8, 4),
+    CPUIDFeature("C3 substates", """Number of supported C3 sub-states \
+        supported by MWAIT""", 0x00000005, "edx", 12, 4),
+    CPUIDFeature("C4 substates", """Number of supported C4 sub-states \
+        supported by MWAIT""", 0x00000005, "edx", 16, 4),
+    CPUIDFeature("C5 substates", """Number of supported C5 sub-states \
+        supported by MWAIT""", 0x00000005, "edx", 20, 4),
+    CPUIDFeature("C6 substates", """Number of supported C6 sub-states \
+        supported by MWAIT""", 0x00000005, "edx", 24, 4),
+    CPUIDFeature("C7 substates", """Number of supported C7 sub-states \
+        supported by MWAIT""", 0x00000005, "edx", 28, 4),
+
+    CPUIDBoolFeature("PLN", "Power limit notification support", 0x00000006,
+        "eax", 4),
+    CPUIDBoolFeature("ECMD", "Clock modulation duty cycle support", 0x00000006,
+        "eax", 5),
+    CPUIDBoolFeature("PTM", "Package thermal management support", 0x00000006,
+        "eax", 6),
+    CPUIDBoolFeature("turbo-boost-3", "Intel Turbo Boost Max Technology 3.0",
+        0x00000006, "eax", 14),
+
+    CPUIDBoolFeature("hardware-coordination-feedback",
+        "APERF/MPERF MSRs present", 0x00000006, "ecx", 0),
+
+    CPUIDFeature("TSC:CLK (denominator)", "", 0x00000015, "eax", 0, 32),
+    CPUIDFeature("TSC:CLK (numerator)", "", 0x00000015, "ebx", 0, 32),
+    CPUIDFeature("base CCLK", "", 0x00000016, "eax", 0, 16),
+    CPUIDFeature("max CCLK", "", 0x00000016, "ebx", 0, 16),
+]
+
+
+
+FEATURES = [
     CPUIDBoolFeature("TscInvariant", """TSC runs at a constant frequency in all \
             P- and C-states""", 0x80000007, "edx", 8),
     CPUIDBoolFeature("ARAT", "Always Running APIC Timer", 0x00000006, "eax", 2),
@@ -268,21 +513,10 @@ FEATURES = [
     CPUIDFeature("FamilyID", "Family ID", 0x00000001, "eax", 8, 4),
     CPUIDFeature("ModelID", "Model ID", 0x00000001, "eax", 4, 4),
 
-    CPUIDFeature("TSC:CLK (denominator)", "", 0x00000015, "eax", 0, 32),
-    CPUIDFeature("TSC:CLK (numerator)", "", 0x00000015, "ebx", 0, 32),
-    CPUIDFeature("base CCLK", "", 0x00000016, "eax", 0, 16),
-    CPUIDFeature("max CCLK", "", 0x00000016, "ebx", 0, 16),
-
     CPUIDBoolFeature("Virtualized", "Running on a virtual processor",
         0x00000001, "ecx", 31),
     CPUIDFeature("Hypervisor leaves", "Microsoft Hypervisor CPUID leaves",
         0x40000000,"eax", 0, 32),
-
-    CPUIDBoolFeature("monitor", "monitor/mwait instructions",
-        0x00000001, "ecx", 3),
-
-    CPUIDBoolFeature("Long mode", "Processor supports AMD64 mode",
-        0x80000001, "edx", 29),
 
     CPUIDBoolFeature("DecodeAssist", "SVM helps decode instructions on VMEXIT",
         0x8000000A,"edx", 7),
@@ -292,8 +526,13 @@ FEATURES = [
         0x8000000A,"edx", 18),
 
     CPUIDVendor(),
-    CPUIDUarch()
+    CPUIDUarch(),
+
+    CPUIDBoolFeature("XGETBV w/ ECX=1", "XGETBV /w ECX=1", 0x0000000d,
+        "eax", 2, subleaf=1)
 ]
+
+FEATURES += ISA_EXTENSIONS
 
 section_headers = {
         "------[ Versions ]------": ("versions", ParseState.VERSION),
