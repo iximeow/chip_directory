@@ -103,6 +103,25 @@ class CPUIDFeature:
             value,
         )
 
+class CPUIDFCMOV(CPUIDFeature):
+    def __init__(self):
+        super().__init__("FCMOV", "x87 CMOVcc", None, None, None, 2, None)
+
+    def present(self):
+        return self.value == 1
+
+    def parse(self, info, db):
+        leaf = info.cpuid[0][0x00000001]
+
+        edx = leaf['edx']
+
+        present = edx & 0x00008001 == 0x00008001
+
+        if present:
+            self.value = 1
+        else:
+            self.value = 0
+
 class CPUIDBoolFeature(CPUIDFeature):
     def __init__(self, shortname, longname, leaf, reg, offset, subleaf=None):
         super().__init__(shortname, longname, leaf, reg, offset, 1, subleaf)
@@ -184,8 +203,31 @@ class CPUIDUarch:
 
 
     def parse_intel(self, info, db):
-        return None
-#         raise Exception("Intel not supported yet")
+        family = info.feature("FamilyID").value
+        ext_family = info.feature("ExtendedFamilyID").value
+
+        model = info.feature("ModelID").value
+        ext_model = info.feature("ExtendedModelID").value
+
+        fm = db.query("""\
+            select uarch from family_model_info join vendors on
+            family_model_info.vendor = vendors.id \
+            where \
+                vendors.name="Intel" and \
+                family_model_info.family={} and \
+                family_model_info.ext_family={} and \
+                family_model_info.model={} and \
+                family_model_info.ext_model={}""".format(
+            family, ext_family, model, ext_model))
+
+        try:
+            fm = fm.next()
+            fm = fm['uarch']
+        except:
+            print("unknown family and/or model: {:x}h+{:x}h/{:x}h+{:x}".format(
+                family, ext_family,
+                model, ext_model))
+            print("  {}".format(info.cpuid_name))
 
     def parse_amd(self, info, db):
         family = info.feature("FamilyID").value
