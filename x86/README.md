@@ -40,6 +40,13 @@ things that are still missing or underconsidered here:
 * really want to include information about actual distinct processor models,
   mapping them to the above-mentioned families but including frequency, power,
   TDP, date, MSRP, and other trivia for each SKU
+* core 0 is assumed to be representative of an entire system's worth of
+  processors. this is blatantly incorrect for processors with a heterogenous
+  mix of different cores, such as some Alder Lake and onward Intel parts.
+* some CPUs allegedly have different cores in different steppings - recent
+  examples here are the C0/H0 steppings on i5-12400, or B0/C0 steppings on
+  i5-13400f. do these steppings vary in actual functionality? who knows! really
+  need CPUID samples from all of them to get any idea.
 * references to datasheets and documents for processors (or processor families)
   and specifically related supporting hardware
 
