@@ -21,7 +21,29 @@ Zen
 Zen 3
 ```
 
-... for entirely arbitrary reasons, i decided that Zen 2 rounds to Zen, and both Zen 4 and 5 round to Zen 3. this should probably be revisited.
+... for entirely arbitrary reasons, i decided that Zen 2 rounds to Zen, and
+both Zen 4 and 5 round to Zen 3. this should probably be revisited.
+
+#### HELP
+
+things that are still missing or underconsidered here:
+
+* "family" and "uarch" is generally backwards. "family" was intended to
+  capture "new microarchitecture" vs "refinement of previous
+  microarchitecture". unfortunately, "family" also more often refers a
+  vendor's product line in a particular segment - consider "Clarkdale" in the
+  old Westmere days, where "Clarksdale" is the marketing name for particular
+  combinations of Westmere cores across a few market segments.
+* would really be great to visualize which architectures, families, years, etc
+  that features become consistently available
+    - "consistently available" is subjective. this is a subjective determination...
+* really want to include information about actual distinct processor models,
+  mapping them to the above-mentioned families but including frequency, power,
+  TDP, date, MSRP, and other trivia for each SKU
+* references to datasheets and documents for processors (or processor families)
+  and specifically related supporting hardware
+
+#### "hardware support" is difficult to genericize
 
 while early/unreleased/OEM configurations are interesting (both technically and
 historically), it's much more useful to say for example, "all Zen processors
