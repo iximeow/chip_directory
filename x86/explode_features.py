@@ -223,6 +223,7 @@ class CPUIDUarch:
         try:
             fm = fm.next()
             fm = fm['uarch']
+            return fm
         except:
             print("unknown family and/or model: {:x}h+{:x}h/{:x}h+{:x}".format(
                 family, ext_family,
@@ -504,6 +505,8 @@ INTEL_FEATURES = [
 
 
 FEATURES = [
+    CPUIDBoolFeature("HwPstate", """Hardware supports P-states""",
+            0x80000007, "edx", 7),
     CPUIDBoolFeature("TscInvariant", """TSC runs at a constant frequency in all \
             P- and C-states""", 0x80000007, "edx", 8),
     CPUIDBoolFeature("ARAT", "Always Running APIC Timer", 0x00000006, "eax", 2),
@@ -1174,22 +1177,38 @@ def add(dbpath, cpuid_filename):
                 "feature": feat_id
             })
 
-def get_interesting(features):
+def get_interesting(vendor, features):
+    print("vendor: {}".format(vendor))
     predicate = ' and '.join(
         ["cpus.id in has_{}".format(
             f['name'].replace(" ", "SP")) for f in features]
     )
-    interesting_ctes = """
-    interesting as (
-        select cpus.id from cpus where
-            {}
-    ),
-    not_interesting as (
-        select cpus.id from cpus where
-            cpus.id not in interesting
-    )
-    """
-    return interesting_ctes.format(predicate)
+    if not vendor:
+        return """
+        interesting as (
+            select cpus.id from cpus where
+                {}
+        ),
+        not_interesting as (
+            select cpus.id from cpus where
+                cpus.id not in interesting
+        )
+        """.format(predicate)
+    else:
+        return """
+        vendorid as (
+            select id from vendors where name="{}"
+        ),
+        interesting as (
+            select cpus.id from cpus join families on cpus.family=families.id where
+                {} and families.vendor in vendorid
+        ),
+        not_interesting as (
+            select cpus.id from cpus join families on cpus.family=families.id where
+                cpus.id not in interesting
+                and families.id in vendorid
+        )
+        """.format(vendor, predicate)
 
 def get_predicate_cte(featrule):
     mangled = featrule['name'].replace(" ", "SP")
@@ -1202,7 +1221,7 @@ def get_predicate_cte(featrule):
         ),""".format(mangled, featrule['name'], featrule['op'],
                 featrule['value'])
 
-def get_interesting_ctes(features):
+def get_interesting_ctes(vendor, features):
     pat = "([A-Za-z0-9 ]+)(:?(=|!=|>|<|>=|<=)([A-Za-z0-9]+))?"
 
     feature_rules = []
@@ -1228,77 +1247,124 @@ def get_interesting_ctes(features):
 
     predicates = [get_predicate_cte(feat) for feat in feature_rules]
 
-    return "with " + "".join(predicates) + get_interesting(feature_rules)
+    return "with " + "".join(predicates) + get_interesting(vendor, feature_rules)
 
-def cpus_with_query(features):
-    return get_interesting_ctes(features) + \
+def cpus_with_query(vendor, features):
+    return get_interesting_ctes(vendor, features) + \
         """ select distinct cpus.id, cpus.name from cpus \
         where cpus.id in interesting;"""
 
-def cpus_without_query(features):
+def cpus_without_query(vendor, features):
     return get_interesting_ctes(features) + \
         """ select distinct cpus.id, cpus.name from cpus \
         where cpus.id in not_interesting;"""
 
-def families_with_query(features):
-    return get_interesting_ctes(features) + \
+def families_with_query(vendor, features):
+    return get_interesting_ctes(vendor, features) + \
         """ select distinct families.id, families.name from cpus join families \
         on cpus.family=families.id where cpus.id in interesting;"""
 
-def families_without_query(features):
-    return get_interesting_ctes(features) + \
+def families_without_query(vendor, features):
+    return get_interesting_ctes(vendor, features) + \
         """ select distinct families.id, families.name from cpus join families \
         on cpus.family=families.id where cpus.id in not_interesting;"""
 
 
-def families_transitioning_query(features):
-    return get_interesting_ctes(features) + \
+def families_transitioning_query(vendor, features):
+    return get_interesting_ctes(vendor, features) + \
         """ select * from families where
             families.id in interesting and
             families.id in not_interesting;"""
 
-def families_with(dbpath, features):
+def features_in_family(dbpath, family):
     db = dataset.connect("sqlite:///{}".format(dbpath))
-    families = db.query(families_with_query(features))
+    fam_id = db['families'].find_one(name=family)['id']
+    cpus_in_fam = db.query(
+        "select count(cpus.id) from cpus where cpus.family={};".format(fam_id))
+    cpus_in_fam = cpus_in_fam.next()['count(cpus.id)']
+    ext_in_all = []
+    ext_in_some = []
+
+    for ext in ISA_EXTENSIONS:
+        name = ext.shortname
+        feat_id = None
+        feat = db['features'].find_one(name=name, value=1)
+        if feat:
+            feat_id = feat['id']
+        else:
+            continue
+        cpu_count = db.query(
+            """select count(distinct cpus.id) from cpus join cpu_features on \
+                cpus.id=cpu_features.cpu where cpus.family={} and \
+                cpu_features.feature={};""".format(fam_id, feat_id))
+        cpu_count = cpu_count.next()
+        cpu_count = cpu_count['count(distinct cpus.id)']
+#        print("count: " + str(cpu_count) + " out of " + str(cpus_in_fam))
+        if cpu_count == cpus_in_fam:
+            ext_in_all.append(name)
+        elif cpu_count > 0:
+            ext_in_some.append(name)
+
+    print("all: " + ", ".join(ext_in_all))
+    print("some: " + ", ".join(ext_in_some))
+
+def families_with(dbpath, vendor, features):
+    db = dataset.connect("sqlite:///{}".format(dbpath))
+    families = db.query(families_with_query(vendor, features))
     for family in families:
         print(family['name'])
 
-def families_without(dbpath, features):
+def families_without(dbpath, vendor, features):
     db = dataset.connect("sqlite:///{}".format(dbpath))
-    families = db.query(families_without_query(features))
+    families = db.query(families_without_query(vendor, features))
     for family in families:
         print(family['name'])
 
-def families_transitioning(dbpath, features):
+def families_transitioning(dbpath, vendor, features):
     db = dataset.connect("sqlite:///{}".format(dbpath))
-    families = db.query(families_transitioning_query(features))
+    families = db.query(families_transitioning_query(vendor, features))
     for family in families:
         print(family['name'])
 
-def cpus_with(dbpath, features):
+def cpus_with(dbpath, vendor, features):
     db = dataset.connect("sqlite:///{}".format(dbpath))
-    cpus = db.query(cpus_with_query(features))
+    cpus = db.query(cpus_with_query(vendor, features))
     for cpu in cpus:
         print(cpu['name'])
 
-def cpus_without(dbpath, features):
+def cpus_without(dbpath, vendor, features):
     db = dataset.connect("sqlite:///{}".format(dbpath))
-    cpus = db.query(cpus_without_query(features))
+    cpus = db.query(cpus_without_query(vendor, features))
     for cpu in cpus:
         print(cpu['name'])
 
 
 cmd = sys.argv[1]
 
+searches = {
+        "cpus-with": cpus_with,
+        "cpus-without": cpus_without,
+        "families-with": families_with,
+        "families-without": families_without,
+        "families-transitioning": families_transitioning,
+        "features-in-family": features_in_family
+}
+
 if cmd == "add":
     add(sys.argv[2], sys.argv[3])
-elif cmd == "cpus-with":
-    cpus_with(sys.argv[2], sys.argv[3:])
-elif cmd == "cpus-without":
-    cpus_without(sys.argv[2], sys.argv[3:])
-elif cmd == "families-with":
-    families_with(sys.argv[2], sys.argv[3:])
-elif cmd == "families-without":
-    families_without(sys.argv[2], sys.argv[3:])
-elif cmd == "families-transitioning":
-    families_transitioning(sys.argv[2], sys.argv[3:])
+else:
+    # HELP: look the adhoc argument parsing is bad but...
+    # anyway all the cpu/family commands should be able to limit the vendors
+    # which they're concerned with
+    op = searches[cmd]
+
+    dbpath = sys.argv[2]
+    vendor = None
+
+    if sys.argv[3] == "--vendor":
+        vendor = sys.argv[4]
+        args = sys.argv[5:]
+    else:
+        args = sys.argv[3:]
+
+    op(dbpath, vendor, args)

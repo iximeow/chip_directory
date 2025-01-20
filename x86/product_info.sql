@@ -19,20 +19,71 @@ create table "uarches" (
 create table "families" (
   id INTEGER PRIMARY KEY,
   name TEXT,
-  description TEXT
+  description TEXT,
+  -- foreign key into `vendors`
+  -- (yes, not great since family_model_info also holds this key..)
+  vendor INTEGER NOT NULL
 );
 
-insert into families (name, description) values ("Am486", NULL);
-insert into families (name, description) values ("K5", NULL);
-insert into families (name, description) values ("K6", NULL);
-insert into families (name, description) values ("K7", NULL);
-insert into families (name, description) values ("K8", NULL);
-insert into families (name, description) values ("K10", NULL);
-insert into families (name, description) values ("Bobcat", NULL);
-insert into families (name, description) values ("Jaguar", NULL);
-insert into families (name, description) values ("Bulldozer", NULL);
-insert into families (name, description) values ("Zen", NULL);
-insert into families (name, description) values ("Zen 3", NULL);
+insert into families (name, description, vendor) values (
+  'Am486', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'K5', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'K6', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'K7', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'K8', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'K10',
+  'the marketing name for the the series of parts between K8 and Bulldozer. ' ||
+  'the engineering name for the cores here was K9, where K10 was the name for'||
+  ' what became Bulldozer. unfortunately it seems at the time that different '||
+  'groups in AMD wanted to claim the "next-generation" architecture, and so ' ||
+  'K10 itself became a contested name. in the intervening twenty years, K10 ' ||
+  'seems to have become the common name in AIDA, cpuid, etc. to quote an old' ||
+  ' email? forum post? something? here in 2007, David Kanter from AMD ' ||
+  'described: ' || char(10) || char(10) ||
+  'Just to clarify terminology:' || char(10) ||
+  "Greyhound/Bloodhound i.e. K9 is what is known as barcelona, agena, or whatever. AMD's marketing has tried to rename it to avoid the engineering code-names, but that's fine." || char(10) ||
+  char(10) ||
+  'The K10 (engineering name) project is what is being referred to as Bulldozer/Sandtiger.' || char(10) ||
+  char(10) ||
+  'DK' || char(10) || char(10) ||
+  'from https://www.realworldtech.com/forum/?threadid=80528&curpostid=80571',
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'Bobcat', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'Jaguar', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'Bulldozer', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'Zen', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'Zen 3', NULL,
+  (select id from vendors where name="AMD")
+);
 
 insert into uarches (family, name, description) select
   id, "Am486", NULL from families where name="Am486";
@@ -174,34 +225,6 @@ insert into uarches (family, name, description) select
 insert into uarches (family, name, description) select
   id, "Zen 5", NULL from families where name="Zen 3";
 
-insert into families (name, description) values ('Am486', NULL);
-insert into families (name, description) values ('K5', NULL);
-insert into families (name, description) values ('K6', NULL);
-insert into families (name, description) values ('K7', NULL);
-insert into families (name, description) values ('K8', NULL);
-insert into families (name, description) values (
-  'K10',
-  'the marketing name for the the series of parts between K8 and Bulldozer. ' ||
-  'the engineering name for the cores here was K9, where K10 was the name for'||
-  ' what became Bulldozer. unfortunately it seems at the time that different '||
-  'groups in AMD wanted to claim the "next-generation" architecture, and so ' ||
-  'K10 itself became a contested name. in the intervening twenty years, K10 ' ||
-  'seems to have become the common name in AIDA, cpuid, etc. to quote an old' ||
-  ' email? forum post? something? here in 2007, David Kanter from AMD ' ||
-  'described: ' || char(10) || char(10) ||
-  'Just to clarify terminology:' || char(10) ||
-  "Greyhound/Bloodhound i.e. K9 is what is known as barcelona, agena, or whatever. AMD's marketing has tried to rename it to avoid the engineering code-names, but that's fine." || char(10) ||
-  char(10) ||
-  'The K10 (engineering name) project is what is being referred to as Bulldozer/Sandtiger.' || char(10) ||
-  char(10) ||
-  'DK' || char(10) || char(10) ||
-  'from https://www.realworldtech.com/forum/?threadid=80528&curpostid=80571'
-);
-insert into families (name, description) values ('Bobcat', NULL);
-insert into families (name, description) values ('Jaguar', NULL);
-insert into families (name, description) values ('Bulldozer', NULL);
-insert into families (name, description) values ('Zen', NULL);
-insert into families (name, description) values ('Zen 3', NULL);
 
 create table "family_model_info" (
   id INTEGER PRIMARY KEY,
@@ -1178,4 +1201,908 @@ create table "features" (
   id INTEGER PRIMARY KEY,
   name TEXT NOT NULL,
   value INTEGER
+);
+
+-- *****************************************************************************
+-- ************************ INTEL MODEL AND FAMILY INFO ************************
+-- *****************************************************************************
+--
+
+insert into families (name, description, vendor) values ('486', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('P5', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('P6', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('NetBurst', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Core', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Penryn', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Nehalem', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Westmere', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Sandy Bridge', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Ivy Bridge', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Haswell', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Broadwell', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Skylake', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Cascade Lake', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Cooper Lake', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Kaby Lake', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Coffee Lake', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Whiskey Lake', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Amber Lake', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Palm Cove', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Coffee Lake', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Comet Lake', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Sunny Cove', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Willow Cove', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Cypress Cove', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Golden Cove', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Raptor Cove', NULL,
+  (select id from vendors where name="Intel")
+);
+
+-- finally, the low-power *mont cores, starting with .... Bonnell (yes yes, not
+  -- a mont.)
+insert into families (name, description, vendor) values ('Bonnell', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Saltwell', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Silvermont', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Airmont', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Goldmont', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Goldmont+', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Tremont', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Gracemont', NULL,
+  (select id from vendors where name="Intel")
+);
+-- Meteor Lake E-cores, at least
+insert into families (name, description, vendor) values ('Crestmont', NULL,
+  (select id from vendors where name="Intel")
+);
+-- Lunar Lake E-cores
+insert into families (name, description, vendor) values ('Skymont', NULL,
+  (select id from vendors where name="Intel")
+);
+
+-- HELP: was Lakemont really the name of cores used in Quark?
+insert into families (name, description, vendor) values ('Lakemont', NULL,
+  (select id from vendors where name="Intel")
+);
+
+-- continuing the farce from backwards AMD tables: map 486 through NetBurst to
+-- "families" of the same name.
+insert into uarches (family, name, description) select
+  id, "486", NULL from families where name="486";
+insert into uarches (family, name, description) select
+  id, "P5", NULL from families where name="P5";
+insert into uarches (family, name, description) select
+  id, "P54C", NULL from families where name="P5";
+insert into uarches (family, name, description) select
+  id, "P24T", NULL from families where name="P5";
+insert into uarches (family, name, description) select
+  id, "P55C", NULL from families where name="P5";
+-- HELP: accurate categorization?
+insert into uarches (family, name, description) select
+  id, "Tillamook", NULL from families where name="P5";
+-- HELP: need better citation, but it seems like "Lakemont" describes the cores
+-- used in Quark products?
+insert into uarches (family, name, description) select
+  id, "Clanton", NULL from families where name="Lakemont";
+insert into uarches (family, name, description) select
+  id, "P6", NULL from families where name="P6";
+insert into uarches (family, name, description) select
+  id, "P2OD", NULL from families where name="P6";
+insert into uarches (family, name, description) select
+  id, "Katmai", NULL from families where name="P6";
+insert into uarches (family, name, description) select
+  id, "Coppermine", NULL from families where name="P6";
+-- HELP: mirror and notes:
+-- https://www.anandtech.com/show/1083/2
+-- very similar to P4 in some respects, apparently.. maybe not call this "P6"?
+insert into uarches (family, name, description) select
+  id, "Banias", NULL from families where name="P6";
+insert into uarches (family, name, description) select
+  id, "Cascades", NULL from families where name="P6";
+insert into uarches (family, name, description) select
+  id, "Tualatin", NULL from families where name="P6";
+insert into uarches (family, name, description) select
+  id, "Dothan", NULL from families where name="P6";
+insert into uarches (family, name, description) select
+  id, "Tolapai", NULL from families where name="P6";
+-- HELP: at least according to wikipedia (lol) this is a follow-on rev of Banias
+-- with SSE3, NX, other changes. and was used in Core Solo and Core Duo? but not
+-- conroe. lol ??
+insert into uarches (family, name, description) select
+  id, "Yonah", NULL from families where name="P6";
+insert into uarches (family, name, description) select
+  id, "NetBurst", NULL from families where name="NetBurst";
+insert into uarches (family, name, description) select
+  id, "Willamette", NULL from families where name="NetBurst";
+insert into uarches (family, name, description) select
+  id, "Northwood", NULL from families where name="NetBurst";
+insert into uarches (family, name, description) select
+  id, "Prescott", NULL from families where name="NetBurst";
+insert into uarches (family, name, description) select
+  id, "Cedar Mill", NULL from families where name="NetBurst";
+-- INTEL HAD CODENAMES FOR EACH COMBINATION OF SEGMENT AND CORE COUNT??
+insert into uarches (family, name, description) select
+  id, "Merom", NULL from families where name="Core";
+insert into uarches (family, name, description) select
+  id, "Conroe", NULL from families where name="Core";
+insert into uarches (family, name, description) select
+  id, "Allendale", NULL from families where name="Core";
+insert into uarches (family, name, description) select
+  id, "Kentsfields", NULL from families where name="Core";
+insert into uarches (family, name, description) select
+  id, "Clovertown", NULL from families where name="Core";
+insert into uarches (family, name, description) select
+  id, "Woodcrest", NULL from families where name="Core";
+insert into uarches (family, name, description) select
+  id, "Tigerton", NULL from families where name="Core";
+-- PENRYN IS WORSE: THE 45NM SHRINK OF CORE IS NAMED PENRYN BUT SO ARE SOME
+-- SPECIFIC CPUS USING PENRYN CORES.
+-- i thought i was going crazy until i tripped over
+-- https://www.theregister.com/2007/09/19/idf_intel_penryn_decoder/
+-- which includes:
+-- > Yes, it's the same name as the generic 45nm architecture, but that hasn't
+-- > stopped Intel codenaming its upcoming mobile Core 2 Duos and Core 2
+-- > Extremes Penryn too. All due in Q1 2008, they're dual-core parts with 3MB
+-- > or 6MB of L2 cache. Expect to see a 2.8GHz Core 2 Extreme X9000 at launch,
+-- > along with four 'Santa Rosa refresh' Core 2 Duos: the T8100, T8300, T9300
+-- > and T9500, clocked at 2.1GHz, 2.4GHz, 2.5GHz and 2.6GHz, respectively.
+--
+-- TODO: separtely, seems like etallen's FAMILY.NOTES incorrectly lists 2-core
+-- mobile Penryn-based parts as Merom-3M, when it should be Penryn-3M.
+insert into uarches (family, name, description) select
+  id, "Penryn", NULL from families where name="Penryn";
+insert into uarches (family, name, description) select
+  id, "Wolfdale", NULL from families where name="Penryn";
+insert into uarches (family, name, description) select
+  id, "Yorkfield", NULL from families where name="Penryn";
+insert into uarches (family, name, description) select
+  id, "Harpertown", NULL from families where name="Penryn";
+insert into uarches (family, name, description) select
+  id, "Dunnington", NULL from families where name="Penryn";
+-- more variants for Nehalem...
+insert into uarches (family, name, description) select
+  id, "Clarksfield", NULL from families where name="Nehalem";
+insert into uarches (family, name, description) select
+  id, "Lynnfield", NULL from families where name="Nehalem";
+insert into uarches (family, name, description) select
+  id, "Jasper Forest", NULL from families where name="Nehalem";
+insert into uarches (family, name, description) select
+  id, "Bloomfield", NULL from families where name="Nehalem";
+insert into uarches (family, name, description) select
+  id, "Gainestown", NULL from families where name="Nehalem";
+insert into uarches (family, name, description) select
+  id, "Beckton", NULL from families where name="Nehalem";
+-- and more for Westmere. almost done...
+insert into uarches (family, name, description) select
+  id, "Arrandale", NULL from families where name="Westmere";
+insert into uarches (family, name, description) select
+  id, "Clarkdale", NULL from families where name="Westmere";
+insert into uarches (family, name, description) select
+  id, "Gulftown", NULL from families where name="Westmere";
+-- HELP: there's Westmere-EP and Westmere-EX. rounding to just "Westmere" here..
+insert into uarches (family, name, description) select
+  id, "Westmere", NULL from families where name="Westmere";
+-- finally Sandy Bridge and onward gets simple-ish.
+insert into uarches (family, name, description) select
+  id, "Sandy Bridge", NULL from families where name="Sandy Bridge";
+insert into uarches (family, name, description) select
+  id, "Ivy Bridge", NULL from families where name="Ivy Bridge";
+insert into uarches (family, name, description) select
+  id, "Haswell", NULL from families where name="Haswell";
+insert into uarches (family, name, description) select
+  id, "Broadwell", NULL from families where name="Broadwell";
+insert into uarches (family, name, description) select
+  id, "Skylake", NULL from families where name="Skylake";
+insert into uarches (family, name, description) select
+  id, "Cascade Lake", NULL from families where name="Cascade Lake";
+insert into uarches (family, name, description) select
+  id, "Cooper Lake", NULL from families where name="Cooper Lake";
+insert into uarches (family, name, description) select
+  id, "Kaby Lake", NULL from families where name="Kaby Lake";
+insert into uarches (family, name, description) select
+  id, "Coffee Lake", NULL from families where name="Coffee Lake";
+insert into uarches (family, name, description) select
+  id, "Whiskey Lake", NULL from families where name="Whiskey Lake";
+insert into uarches (family, name, description) select
+  id, "Amber Lake", NULL from families where name="Amber Lake";
+insert into uarches (family, name, description) select
+  id, "Coffee Lake", NULL from families where name="Coffee Lake";
+insert into uarches (family, name, description) select
+  id, "Comet Lake", NULL from families where name="Comet Lake";
+insert into uarches (family, name, description) select
+  id, "Cannon Lake", NULL from families where name="Palm Cove";
+-- uh oh, product name and architectures start diverging again!
+insert into uarches (family, name, description) select
+  id, "Ice Lake", NULL from families where name="Sunny Cove";
+insert into uarches (family, name, description) select
+  id, "Tiger Lake", NULL from families where name="Willow Cove";
+insert into uarches (family, name, description) select
+  id, "Rocket Lake", NULL from families where name="Cypress Cove";
+-- HELP! how to include Alder Lake and onward with E-cores and P-cores?
+-- HELP! just going with P-cores for now
+insert into uarches (family, name, description) select
+  id, "Alder Lake", NULL from families where name="Golden Cove";
+insert into uarches (family, name, description) select
+  id, "Sapphire Rapids", NULL from families where name="Golden Cove";
+
+-- and then Atom...
+-- HELP! not being precise about the product codenames for Atom yet
+-- might need to? might not? depends on CPUID..
+insert into uarches (family, name, description) select
+  id, "Bonnell", NULL from families where name="Bonnell";
+insert into uarches (family, name, description) select
+  id, "Bonnell 2", NULL from families where name="Bonnell 2";
+insert into uarches (family, name, description) select
+  id, "Saltwell", NULL from families where name="Saltwell";
+insert into uarches (family, name, description) select
+  id, "Silvermont", NULL from families where name="Silvermont";
+insert into uarches (family, name, description) select
+  id, "Airmont", NULL from families where name="Airmont";
+insert into uarches (family, name, description) select
+  id, "Goldmont", NULL from families where name="Goldmont";
+insert into uarches (family, name, description) select
+  id, "Goldmont+", NULL from families where name="Goldmont+";
+insert into uarches (family, name, description) select
+  id, "Tremont", NULL from families where name="Tremont";
+insert into uarches (family, name, description) select
+  id, "Jasper Lake", NULL from families where name="Tremont";
+insert into uarches (family, name, description) select
+  id, "Gracemont", NULL from families where name="Gracemont";
+insert into uarches (family, name, description) select
+  id, "Crestmont", NULL from families where name="Crestmont";
+
+-- now for family/model info..
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  4, 0, 8, 0, (select id from uarches where name="486")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  5, 0, 1, 0, (select id from uarches where name="P5")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  5, 0, 2, 0, (select id from uarches where name="P54C")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  5, 0, 3, 0, (select id from uarches where name="P24T")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  5, 0, 4, 0, (select id from uarches where name="P55C")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  5, 0, 7, 0, (select id from uarches where name="P54C")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  5, 0, 8, 0, (select id from uarches where name="Tillamook")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  5, 0, 9, 0, (select id from uarches where name="Clanton")
+);
+-- some more family 5 are skipped..
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 1, 0, (select id from uarches where name="P6")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 3, 0, (select id from uarches where name="P2OD")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 5, 0, (select id from uarches where name="P6")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 6, 0, (select id from uarches where name="P6")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 7, 0, (select id from uarches where name="Katmai")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 8, 0, (select id from uarches where name="Coppermine")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 9, 0, (select id from uarches where name="Banias")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 0xa, 0, (select id from uarches where name="Cascades")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 0xb, 0, (select id from uarches where name="Tualatin")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 0xd, 0, (select id from uarches where name="Dothan")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 0xe, 0, (select id from uarches where name="Yonah")
+);
+
+-- HELP: according to wikipedia (so, better citation please)
+-- and/or this IA Ars link:
+-- https://arstechnica.com/gadgets/2007/08/intel-confirms-details-of-tolapai-a-soc-embedded-processor/
+-- it's seemingly a revised Dothan..
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 5, 1, (select id from uarches where name="Tolapai")
+);
+
+
+-- lots of Netburst..
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  15, 0, 0, 0, (select id from uarches where name="Willamette")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  15, 0, 1, 0, (select id from uarches where name="Willamette")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  15, 0, 2, 0, (select id from uarches where name="Northwood")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  15, 0, 3, 0, (select id from uarches where name="Prescott")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  15, 0, 4, 0, (select id from uarches where name="Prescott")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  15, 0, 6, 0, (select id from uarches where name="Cedar Mill")
+);
+----------
+-- `cpuid` calls these both Merom, but one of these should probably be Conroe..?
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 0xf, 0, (select id from uarches where name="Merom")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 6, 1, (select id from uarches where name="Merom")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 7, 1, (select id from uarches where name="Penryn")
+);
+-- HELP what's the difference??
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 13, 1, (select id from uarches where name="Penryn")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 1, (select id from uarches where name="Bloomfield")
+);
+-- HELP: brand/processor codename depends on segment and stepping. this is
+-- actually a mix of Jasper Forest, Lynnfield, Clarksfield...
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 1, (select id from uarches where name="Lynnfield")
+);
+-- HELP: cpuid reports this as Havendale/Auburndale, dunno if InstLatx64 has any
+-- processors of this type, presumably these are fundamentally Nehalem cores
+-- too, so use Lynnfield as the nexy closest approximation
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 15, 1, (select id from uarches where name="Lynnfield")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 2, (select id from uarches where name="Beckton")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 12, 1, (select id from uarches where name="Bonnell")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 5, 2, (select id from uarches where name="Westmere")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 12, 2, (select id from uarches where name="Westmere")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 15, 2, (select id from uarches where name="Westmere")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 6, 2, (select id from uarches where name="Bonnell")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 7, 2, (select id from uarches where name="Saltwell")
+);
+-- HELP family/ext family differences again...
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 5, 3, (select id from uarches where name="Saltwell")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 6, 3, (select id from uarches where name="Saltwell")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 2, (select id from uarches where name="Sandy Bridge")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 13, 2, (select id from uarches where name="Sandy Bridge")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 7, 3, (select id from uarches where name="Silvermont")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 4, (select id from uarches where name="Silvermont")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 13, 4, (select id from uarches where name="Silvermont")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 5, (select id from uarches where name="Silvermont")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 13, 5, (select id from uarches where name="Silvermont")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 2, (select id from uarches where name="Sandy Bridge")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 13, 2, (select id from uarches where name="Sandy Bridge")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 3, (select id from uarches where name="Ivy Bridge")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 3, (select id from uarches where name="Ivy Bridge")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 12, 3, (select id from uarches where name="Haswell")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 15, 3, (select id from uarches where name="Haswell")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 5, 4, (select id from uarches where name="Haswell")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 6, 4, (select id from uarches where name="Haswell")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 13, 3, (select id from uarches where name="Broadwell")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 7, 4, (select id from uarches where name="Broadwell")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 15, 4, (select id from uarches where name="Broadwell")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 6, 5, (select id from uarches where name="Broadwell")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 12, 4, (select id from uarches where name="Airmont")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 6, (select id from uarches where name="Airmont")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 5, 7, (select id from uarches where name="Airmont")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 4, (select id from uarches where name="Skylake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 5, 5, (select id from uarches where name="Skylake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 5, (select id from uarches where name="Skylake")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 12, 9, (select id from uarches where name="Jasper Lake")
+);
+
+-- Kaby Lake and many related are specifically non-zero steppings on Skylake..?
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 4, (select id from uarches where name="Kaby Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 5, (select id from uarches where name="Kaby Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 8, (select id from uarches where name="Kaby Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 9, (select id from uarches where name="Kaby Lake")
+);
+
+-- etallen makes a compelling argument that Whiskey Lake, Amber Lake, and Comet
+-- Lake are uninteresting branding names that are fundamentally equivalent to
+-- Kaby Lake. from a CPU core perspective anyway. the PCH between these vary
+-- somewhat more..
+-- HELP: useful to distinguish the PCH here? or no? maybe???
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 9, 5, (select id from uarches where name="Kaby Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 5, (select id from uarches where name="Kaby Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 6, (select id from uarches where name="Kaby Lake")
+);
+
+-- See above about Skylake and marketing names. "Comet Lake" here in
+-- anticipation of related but non-CPU feature changes..
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 5, 10, (select id from uarches where name="Comet Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 6, 10, (select id from uarches where name="Comet Lake")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 12, 5, (select id from uarches where name="Goldmont")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 15, 5, (select id from uarches where name="Goldmont")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 7, (select id from uarches where name="Goldmont+")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 6, 6, (select id from uarches where name="Cannon Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 7, 6, (select id from uarches where name="Cannon Lake")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 6, (select id from uarches where name="Ice Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 12, 6, (select id from uarches where name="Ice Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 13, 7, (select id from uarches where name="Ice Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 7, (select id from uarches where name="Ice Lake")
+);
+
+-- Golden Cove (incl Sapphire Rapids)
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 0xf, 8, (select id from uarches where name="Sapphire Rapids")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 5, 9, (select id from uarches where name="Sapphire Rapids")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 7, 9, (select id from uarches where name="Sapphire Rapids")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 9, (select id from uarches where name="Alder Lake")
 );
