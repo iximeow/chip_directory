@@ -78,6 +78,10 @@ class CPUIDFeature:
             if not isinstance(leaf, dict):
                 raise Exception("""{} does not describe a subleaf, but leaf \
                     {:x} has subleaves?""".format(self.shortname, self.leaf))
+            else:
+                raise Exception("""{:x} has subleaves, but no subleaf was \
+                    declared for feature {}""".format(
+                        self.leaf, self.shortname))
 
         reg = leaf[self.reg]
 
@@ -294,7 +298,7 @@ ISA_EXTENSIONS = [
     CPUIDBoolFeature("RDTSCP", "RDTSCP", 0x80000001, "edx", 27),
     CPUIDBoolFeature("SevEs", "VMGEXIT", 0x8000001f, "eax", 3),
     CPUIDBoolFeature("SKINIT", "SKINIT/STGI", 0x80000001, "ecx", 12),
-    CPUIDBoolFeature("SMAP", "CLAC/STAC", 0x00000017, "ebx", 20),
+    CPUIDBoolFeature("SMAP", "CLAC/STAC", 0x00000017, "ebx", 20, subleaf=0),
     CPUIDBoolFeature("SNP (4)", """PSMASH/PVALIDATE/RMPADJUST/RMPUPDATE""",
         0x8000001f, "eax", 4),
     CPUIDBoolFeature("SNP (6)", "RMPQUERY", 0x8000001f, "eax", 6),
