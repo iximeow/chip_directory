@@ -1289,6 +1289,11 @@ insert into families (name, description, vendor) values ('Golden Cove', NULL,
 insert into families (name, description, vendor) values ('Raptor Cove', NULL,
   (select id from vendors where name="Intel")
 );
+insert into families (name, description, vendor) values ('Redwood Cove', NULL,
+  (select id from vendors where name="Intel")
+);
+-- HELP: Panther Cove would be... here? cpuid says MSR_CPUID_table momentarily
+-- described this as family 15, ext-family 4
 
 -- finally, the low-power *mont cores, starting with .... Bonnell (yes yes, not
   -- a mont.)
@@ -1489,6 +1494,18 @@ insert into uarches (family, name, description) select
   id, "Alder Lake", NULL from families where name="Golden Cove";
 insert into uarches (family, name, description) select
   id, "Sapphire Rapids", NULL from families where name="Golden Cove";
+-- HELP! document the model/uarch funkiness here
+insert into uarches (family, name, description) select
+  id, "Raptor Lake", NULL from families where name="Raptor Cove";
+-- HELP! there's not even a wiki page here! gotta go add that!
+-- https://chipsandcheese.com/p/intels-redwood-cove-baby-steps-are-still-steps
+insert into uarches (family, name, description) select
+  id, "Raptor Lake", NULL from families where name="Raptor Cove";
+-- the server part with Raptor Cove only?
+insert into uarches (family, name, description) select
+  id, "Emerald Rapids", NULL from families where name="Raptor Cove";
+insert into uarches (family, name, description) select
+  id, "Meteor Lake", NULL from families where name="Redwood Cove";
 
 -- and then Atom...
 -- HELP! not being precise about the product codenames for Atom yet
@@ -1511,6 +1528,14 @@ insert into uarches (family, name, description) select
   id, "Tremont", NULL from families where name="Tremont";
 insert into uarches (family, name, description) select
   id, "Jasper Lake", NULL from families where name="Tremont";
+insert into uarches (family, name, description) select
+  id, "Elkhart Lake", NULL from families where name="Tremont";
+-- mix of Tremont and Sunny Cove cores. picking Sunny Cove for "max features".
+-- if they set CPUID bits to lowest common denominator, i suppose that means
+-- this might claim Sunny Cove cores do not support features other Sunny
+-- Cove-only processors would.
+insert into uarches (family, name, description) select
+  id, "Lakefield", NULL from families where name="Sunny Cove";
 insert into uarches (family, name, description) select
   id, "Gracemont", NULL from families where name="Gracemont";
 insert into uarches (family, name, description) select
@@ -1959,6 +1984,25 @@ insert into family_model_info (
   6, 0, 12, 9, (select id from uarches where name="Jasper Lake")
 );
 
+-- HELP: just following AIDA and cpuid here..
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 6, 9, (select id from uarches where name="Elkhart Lake")
+);
+
+-- HELP: so.. Lakefield is an early heterogeneous part? the first?
+-- https://www.anandtech.com/show/15877/intel-hybrid-cpu-lakefield-all-you-need-to-know
+-- seemingly Sunny Cove + some number of Tremont. bias towards Sunny Cove for
+-- maximum feature bits..
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 8, (select id from uarches where name="Lakefield")
+);
+
 -- Kaby Lake and many related are specifically non-zero steppings on Skylake..?
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
@@ -2081,6 +2125,19 @@ insert into family_model_info (
   6, 0, 14, 7, (select id from uarches where name="Ice Lake")
 );
 
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 12, 8, (select id from uarches where name="Tiger Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 13, 8, (select id from uarches where name="Tiger Lake")
+);
+
 -- Golden Cove (incl Sapphire Rapids)
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
@@ -2105,4 +2162,71 @@ insert into family_model_info (
 ) values (
   (select id from vendors where brandstring="GenuineIntel"),
   6, 0, 10, 9, (select id from uarches where name="Alder Lake")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 7, 11, (select id from uarches where name="Raptor Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 11, (select id from uarches where name="Raptor Lake")
+);
+-- HELP: InstLatx64 calls this "Alder Lake-N", but cpuid calls 
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 14, 11, (select id from uarches where name="Raptor Lake")
+);
+-- HELP: cpuid says this comes from MSR_CPUID_table, not sure what the
+-- difference here is vs other family/models.. InstLatx64 (AIDA) claims this is
+-- "Alder Lake-N".
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 15, 11, (select id from uarches where name="Raptor Lake")
+);
+
+-- Cypress Cove. similar to Sunny Cove but on 14nm instead of 10nm.
+-- HELP: archive
+-- https://www.anandtech.com/show/16495/intel-rocket-lake-14nm-review-11900k-11700k-11600k/2
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 7, 10, (select id from uarches where name="Rocket Lake")
+);
+
+-- Meteor Lake, there are a few samples here in InstLatX64
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 10, 10, (select id from uarches where name="Meteor Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 11, 10, (select id from uarches where name="Meteor Lake")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 12, 10, (select id from uarches where name="Meteor Lake")
+);
+
+-- cpuid describes this as Panther Lake, not sure what's going on here yet.
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 15, 12, (select id from uarches where name="Emerald Rapids")
 );
