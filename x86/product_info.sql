@@ -1309,6 +1309,11 @@ insert into families (name, description, vendor) values ('Silvermont', NULL,
 insert into families (name, description, vendor) values ('Airmont', NULL,
   (select id from vendors where name="Intel")
 );
+-- absent better classification, KNL was kinda Airmont but also AVX512 etc.
+-- so it's separated out to not muddy up the classifications.
+insert into families (name, description, vendor) values ('AirmontKNL', NULL,
+  (select id from vendors where name="Intel")
+);
 insert into families (name, description, vendor) values ('Goldmont', NULL,
   (select id from vendors where name="Intel")
 );
@@ -1520,6 +1525,8 @@ insert into uarches (family, name, description) select
   id, "Silvermont", NULL from families where name="Silvermont";
 insert into uarches (family, name, description) select
   id, "Airmont", NULL from families where name="Airmont";
+insert into uarches (family, name, description) select
+  id, "Knights Landing", NULL from families where name="Airmont";
 insert into uarches (family, name, description) select
   id, "Goldmont", NULL from families where name="Goldmont";
 insert into uarches (family, name, description) select
@@ -1956,6 +1963,13 @@ insert into family_model_info (
 ) values (
   (select id from vendors where brandstring="GenuineIntel"),
   6, 0, 5, 7, (select id from uarches where name="Airmont")
+);
+
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 7, 5, (select id from uarches where name="Airmont")
 );
 
 insert into family_model_info (
