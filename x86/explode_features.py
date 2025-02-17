@@ -1416,6 +1416,9 @@ def get_features_in_family(dbpath, cpus_selector, family):
         cpu_count = cpu_count.next()
         cpu_count = cpu_count['count(distinct cpus.id)']
 #        print("count: " + str(cpu_count) + " out of " + str(cpus_in_fam))
+        if cpus_in_fam == 0:
+            continue
+
         if cpu_count == cpus_in_fam:
             ext_in_all.append(name)
         elif cpu_count > 0:
@@ -1557,6 +1560,16 @@ PREVIOUSES = {
         "P5": "486"
     },
     "AMD": {
+        "Zen 3": "Zen",
+        "Zen": "Bulldozer",
+        "Bulldozer": "Jaguar",
+        "Jaguar": "Bobcat",
+        "Bobcat": "K10",
+        "K10": "K8",
+        "K8": "K7",
+        "K7": "K6",
+        "K6": "K5",
+        "K5": "Am486"
     }
 }
 
