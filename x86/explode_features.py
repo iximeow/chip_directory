@@ -7,6 +7,17 @@ import struct
 
 import dataset
 
+class CpusSelector:
+    def __init__(self):
+        self.family = None
+        self.vendor = None
+
+    def set_family(self, family):
+        self.family = family
+
+    def set_vendor(self, vendor):
+        self.vendor = vendor
+
 class ParseState(Enum):
     HEADER = 0,
     VERSION = 1
@@ -704,11 +715,20 @@ class AIDAInfo:
             else:
                 return self.cpuid_name
         else:
-            return "Unknown {} family {:x}h model {:x}h".format(
-                self.feature("vendor"),
-                family,
-                model
-            )
+            if self.feature("vendor").value == "GenuineIntel":
+                return "Unknown {} family {:x}h model {:x}h.{:x}h".format(
+                    self.feature("vendor").value,
+                    self.feature("FamilyID").value,
+                    self.feature("ModelID").value,
+                    ext_model,
+                )
+            else:
+                return "Unknown {} family {:x}h model {:x}h.{:x}h".format(
+                    self.feature("vendor").value,
+                    family,
+                    model,
+                    ext_model,
+                )
 
     # some processors in The Great CPUID Collection are actually measured from
     # inside a VM. for many bits this is fine - ISA extensions are typically
@@ -1181,24 +1201,25 @@ def add(dbpath, cpuid_filename):
                 "feature": feat_id
             })
 
-def get_interesting(vendor, features):
-    print("vendor: {}".format(vendor))
+def get_interesting(cpus_selector, features):
     predicate = ' and '.join(
         ["cpus.id in has_{}".format(
             f['name'].replace(" ", "SP")) for f in features]
     )
-    if not vendor:
+    if not cpus_selector.vendor and not cpus_selector.family:
         return """
         interesting as (
             select cpus.id from cpus where
                 {}
+                and cpus.virtual=0
         ),
         not_interesting as (
             select cpus.id from cpus where
                 cpus.id not in interesting
+                and cpus.virtual=0
         )
         """.format(predicate)
-    else:
+    elif not cpus_selector.family and cpus_selector.vendor:
         return """
         vendorid as (
             select id from vendors where name="{}"
@@ -1206,13 +1227,52 @@ def get_interesting(vendor, features):
         interesting as (
             select cpus.id from cpus join families on cpus.family=families.id where
                 {} and families.vendor in vendorid
+                and cpus.virtual=0
         ),
         not_interesting as (
             select cpus.id from cpus join families on cpus.family=families.id where
                 cpus.id not in interesting
-                and families.id in vendorid
+                and cpus.virtual=0
         )
-        """.format(vendor, predicate)
+        """.format(cpus_selector.vendor, predicate)
+    elif not cpus_selector.vendor and cpus_selector.family:
+        return """
+        familyid as (
+            select id from families where name="{}"
+        ),
+        interesting as (
+            select cpus.id from cpus where cpus.family in familyid
+                and cpus.virtual=0
+        ),
+        not_interesting as (
+            select cpus.id from cpus where cpus.family not in familyid
+                and cpus.virtual=0
+        )
+        """.format(cpus_selector.family, predicate)
+    else:
+        # both vendor and family
+        return """
+        vendorid as (
+            select id from vendors where name="{}"
+        ),
+        familyid as (
+            select id from families where name="{}"
+        ),
+        interesting as (
+            select cpus.id from cpus join families on cpus.family=families.id where
+                {}
+                and families.id in familyid
+                and families.vendor in vendorid
+                and cpus.virtual=0
+        ),
+        not_interesting as (
+            select cpus.id from cpus join families on cpus.family=families.id where
+                cpus.id not in interesting
+                and families.id in familyid
+                and families.vendor in vendorid
+                and cpus.virtual=0
+        )
+        """.format(cpus_selector.vendor, cpus_selector.family, predicate)
 
 def get_predicate_cte(featrule):
     mangled = featrule['name'].replace(" ", "SP")
@@ -1225,7 +1285,7 @@ def get_predicate_cte(featrule):
         ),""".format(mangled, featrule['name'], featrule['op'],
                 featrule['value'])
 
-def get_interesting_ctes(vendor, features):
+def get_interesting_ctes(cpus_selector, features):
     pat = "([A-Za-z0-9 ]+)(:?(=|!=|>|<|>=|<=)([A-Za-z0-9]+))?"
 
     feature_rules = []
@@ -1251,40 +1311,40 @@ def get_interesting_ctes(vendor, features):
 
     predicates = [get_predicate_cte(feat) for feat in feature_rules]
 
-    return "with " + "".join(predicates) + get_interesting(vendor, feature_rules)
+    return "with " + "".join(predicates) + get_interesting(cpus_selector, feature_rules)
 
-def cpus_with_query(vendor, features):
-    return get_interesting_ctes(vendor, features) + \
+def cpus_with_query(cpus_selector, features):
+    return get_interesting_ctes(cpus_selector, features) + \
         """ select distinct cpus.id, cpus.name from cpus \
         where cpus.id in interesting;"""
 
-def cpus_without_query(vendor, features):
-    return get_interesting_ctes(features) + \
+def cpus_without_query(cpus_selector, features):
+    return get_interesting_ctes(cpus_selector, features) + \
         """ select distinct cpus.id, cpus.name from cpus \
         where cpus.id in not_interesting;"""
 
-def families_with_query(vendor, features):
-    return get_interesting_ctes(vendor, features) + \
+def families_with_query(cpus_selector, features):
+    return get_interesting_ctes(cpus_selector, features) + \
         """ select distinct families.id, families.name from cpus join families \
         on cpus.family=families.id where cpus.id in interesting;"""
 
-def families_without_query(vendor, features):
-    return get_interesting_ctes(vendor, features) + \
+def families_without_query(cpus_selector, features):
+    return get_interesting_ctes(cpus_selector, features) + \
         """ select distinct families.id, families.name from cpus join families \
         on cpus.family=families.id where cpus.id in not_interesting;"""
 
 
-def families_transitioning_query(vendor, features):
-    return get_interesting_ctes(vendor, features) + \
+def families_transitioning_query(cpus_selector, features):
+    return get_interesting_ctes(cpus_selector, features) + \
         """ select * from families where
             families.id in interesting and
             families.id in not_interesting;"""
 
-def features_in_family(dbpath, family):
+def get_features_in_family(dbpath, cpus_selector, family):
     db = dataset.connect("sqlite:///{}".format(dbpath))
     fam_id = db['families'].find_one(name=family)['id']
     cpus_in_fam = db.query(
-        "select count(cpus.id) from cpus where cpus.family={};".format(fam_id))
+        "select count(cpus.id) from cpus where cpus.family={} and cpus.virtual=0;".format(fam_id))
     cpus_in_fam = cpus_in_fam.next()['count(cpus.id)']
     ext_in_all = []
     ext_in_some = []
@@ -1300,6 +1360,7 @@ def features_in_family(dbpath, family):
         cpu_count = db.query(
             """select count(distinct cpus.id) from cpus join cpu_features on \
                 cpus.id=cpu_features.cpu where cpus.family={} and \
+                cpus.virtual=0 and \
                 cpu_features.feature={};""".format(fam_id, feat_id))
         cpu_count = cpu_count.next()
         cpu_count = cpu_count['count(distinct cpus.id)']
@@ -1309,39 +1370,168 @@ def features_in_family(dbpath, family):
         elif cpu_count > 0:
             ext_in_some.append(name)
 
-    print("all: " + ", ".join(ext_in_all))
-    print("some: " + ", ".join(ext_in_some))
+    return {
+        "all": ext_in_all,
+        "some": ext_in_some
+    }
 
-def families_with(dbpath, vendor, features):
+def features_in_family(dbpath, cpus_selector, features):
+    feats = get_features_in_family(dbpath, cpus_selector, features)
+    print("all: " + ", ".join(feats['all']))
+    print("some: " + ", ".join(feats['some']))
+
+def families_with(dbpath, cpus_selector, features):
     db = dataset.connect("sqlite:///{}".format(dbpath))
-    families = db.query(families_with_query(vendor, features))
+    families = db.query(families_with_query(cpus_selector, features))
     for family in families:
         print(family['name'])
 
-def families_without(dbpath, vendor, features):
+def families_without(dbpath, cpus_selector, features):
     db = dataset.connect("sqlite:///{}".format(dbpath))
-    families = db.query(families_without_query(vendor, features))
+    families = db.query(families_without_query(cpus_selector, features))
     for family in families:
         print(family['name'])
 
-def families_transitioning(dbpath, vendor, features):
+def families_transitioning(dbpath, cpus_selector, features):
     db = dataset.connect("sqlite:///{}".format(dbpath))
-    families = db.query(families_transitioning_query(vendor, features))
+    families = db.query(families_transitioning_query(cpus_selector, features))
     for family in families:
         print(family['name'])
 
-def cpus_with(dbpath, vendor, features):
+def cpus_with(dbpath, cpus_selector, features):
     db = dataset.connect("sqlite:///{}".format(dbpath))
-    cpus = db.query(cpus_with_query(vendor, features))
+    cpus = db.query(cpus_with_query(cpus_selector, features))
     for cpu in cpus:
         print(cpu['name'])
 
-def cpus_without(dbpath, vendor, features):
+def cpus_without(dbpath, cpus_selector, features):
     db = dataset.connect("sqlite:///{}".format(dbpath))
-    cpus = db.query(cpus_without_query(vendor, features))
+    cpus = db.query(cpus_without_query(cpus_selector, features))
     for cpu in cpus:
         print(cpu['name'])
 
+def get_families(dbpath, cpus_selector, features):
+    db = dataset.connect("sqlite:///{}".format(dbpath))
+    q = "select * from families"
+    if cpus_selector.family:
+        raise Exception(
+            "getting families but requested a specific family {}",
+            cpus_selector.family
+        )
+    if cpus_selector.vendor:
+        q = """
+        with
+        vendorid as (
+            select id from vendors where name="{}"
+        )
+        select * from families where vendor in vendorid;
+        """.format(cpus_selector.vendor)
+    families = db.query(q)
+    return [fam['name'] for fam in families]
+
+def list_families(dbpath, cpus_selector, features):
+    for fam in get_families(dbpath, cpus_selector, features):
+        print(fam)
+
+# HELP! this is basically guesswork. really need to consult vendor
+# docs/presentations/timelines...
+PREVIOUSES = {
+    "Intel": {
+        "Skymont": "Crestmont",
+        "Crestmont": "Gracemont",
+        "Gracemont": "Tremont",
+        "Tremont": "Goldmont+",
+        "Goldmont+": "Goldmont",
+        "Goldmont": "Airmont",
+        "AirmontKNL": "Silvermont",
+        "AirmontSpreadtrum": "Silvermont",
+        "Airmont": "Silvermont",
+        "Silvermont": "Saltwell",
+        "Saltwell": "Bonnell",
+
+        "Lion Cove": "Redwood Cove",
+        "Redwood Cove": "Raptor Cove",
+        "Raptor Cove": "Golden Cove",
+        "Golden Cove": "Willow Cove",
+        "Willow Cove": "Sunny Cove",
+        "Cypress Cove": "Sunny Cove",
+        "Sunny Cove": "Whiskey Lake",
+        # another iteration on Skylake, but Cannon Lake shipped in exactly one
+        # CPU that was manufactured for a whole year and a half..
+        "Palm Cove": "Skylake",
+        "Comet Lake": "Coffee Lake",
+        "Whiskey Lake": "Coffee Lake",
+        "Coffee Lake": "Skylake",
+        "Amber Lake": "Kaby Lake",
+        "Kaby Lake": "Skylake",
+        "Cooper Lake": "Cascade Lake",
+        "Skylake": "Broadwell",
+        "Broadwell": "Haswell",
+        "Haswell": "Ivy Bridge",
+        "Ivy Bridge": "Sandy Bridge",
+        "Sandy Bridge": "Westmere",
+        "Westmere": "Nehalem",
+        "Nehalem": "Penryn",
+        "Penryn": "Core",
+
+        # things get kinda squirrely here: "predecessor" is really
+        # "closest prior CPU by feature set", not "direct predecessor in terms
+        # of CPU design".
+
+        # Cascade Lake is an HEDT/server family, but Coffe Lake is desktop.
+        # feature-wise though, these are quite similar...
+        "Cascade Lake": "Coffee Lake",
+        # the Pentium and Celeron-branded Kaby Lake processors are incredibly
+        # limited; no AVX2, no AVX, only SEE 4.1 and 4.2 (ARK agrees). CPUID
+        # bits also say no BMI/BMI2, no F16C, no FMA, so these are really like..
+        # Ivy Bridge with a few incidentals added back in?
+        #
+        # this carries through for Coffee Lake and Comet Lake.
+        "Kaby Lake-": "Sandy Bridge",
+        "Coffee Lake-": "Kaby Lake-",
+        # Core clearly did not derive from NetBurst, but the feature sets are
+        # relatively close.
+        "Core": "NetBurst",
+        # i have no idea what the lineage of Bonnell actually is. it is
+        # _definitely_ not a NetBurst revision. but feature-wise NetBurst is the
+        # closest analogue..
+        "Bonnell": "NetBurst",
+        # and at this point getting really nuanced about processor revisions is
+        # a diminishing returns situation. less feature proliferation and fewer
+        # segments to categorize.
+        "NetBurst": "Pentium III",
+        "Pentium III": "Pentium II",
+        "Pentium II": "Pentium Pro",
+        "P6": "P5",
+        "P5": "486"
+    },
+    "AMD": {
+    }
+}
+
+def show_lineage(dbpath, cpus_selector, features):
+    fams = get_families(dbpath, cpus_selector, features)
+    details = {}
+    for fam in fams:
+        details[fam] = get_features_in_family(dbpath, cpus_selector, fam)
+
+    print("stage 1 ok")
+
+    vend_preds = PREVIOUSES[cpus_selector.vendor]
+
+    for d in details:
+        if d in vend_preds:
+            prev_fam = vend_preds[d]
+            prev = set(details[prev_fam]['all'])
+            curr = set(details[d]['all'])
+            added = curr - prev
+            lost = prev - curr
+            print("{}: {} +".format(d, prev_fam) + " +".join(added))
+            if len(lost) > 0:
+                print("    -" + " -".join(lost))
+        else:
+            print("unknown arch: {}".format(d))
+            print("{}: {}".format(d, ', '.join(details[d]['all'])))
 
 cmd = sys.argv[1]
 
@@ -1351,7 +1541,9 @@ searches = {
         "families-with": families_with,
         "families-without": families_without,
         "families-transitioning": families_transitioning,
-        "features-in-family": features_in_family
+        "features-in-family": features_in_family,
+        "families": list_families,
+        "show-lineage": show_lineage
 }
 
 if cmd == "add":
@@ -1363,12 +1555,24 @@ else:
     op = searches[cmd]
 
     dbpath = sys.argv[2]
-    vendor = None
+    cpus_selector = CpusSelector()
 
-    if sys.argv[3] == "--vendor":
-        vendor = sys.argv[4]
-        args = sys.argv[5:]
-    else:
-        args = sys.argv[3:]
+    args = sys.argv[3:]
 
-    op(dbpath, vendor, args)
+    while  len(args) > 0:
+        if args[0] == "--vendor":
+            if len(args) > 1:
+                cpus_selector.set_vendor(args[1])
+                args = args[2:]
+            else:
+                break
+        elif args[0] == "--family":
+            if len(args) > 1:
+                cpus_selector.set_family(args[1])
+                args = args[2:]
+            else:
+                break
+        else:
+            break
+
+    op(dbpath, cpus_selector, args)
