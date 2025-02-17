@@ -64,6 +64,7 @@ straightforward; it's the result of an intersection between:
 * microcode support
 * BIOS support
 * BIOS/OS configuration
+* for some fields, CPU execution mode (64, 32, 16-bit)
 
 while all of these are detailed below, the short of it is that there are two
 kinds of longitudinal questions i've found myself asking:
@@ -196,9 +197,21 @@ channels.
 
 #### on BIOS/OS configuration
 
-here, finally, is the simplest and most variable way for CPUID bits to vary
-across readings of the "same processor": if system A has a feature enabled, and
-system B has that feature disabled, it might show as CPUID leaves varying in
+here is the simplest and most variable way for CPUID bits to vary across
+readings of the "same processor": if system A has a feature enabled, and system
+B has that feature disabled, it might show as CPUID leaves varying in
 otherwise-unexpected ways across different physical copies of the same
 motherboard with other versions otherwise all matching.
-A, and off 
+
+#### on execution mode
+
+finally, even if all other factors are constant between two CPUID readings, some
+CPUID feature bits (most notably `syscall` on Intel CPUs) are reported
+differently depending on if the `cpuid` instruction is itself executed in
+16-bit, 32-bit, or 64-bit mode.
+
+there is no way to detect a false negative here, that i know of - if `syscall`
+is claimed to be unsupported, there's nothing in a CPUID dump that would
+indicate the dump was taken from 32-bit mode rather than the CPU for some reason
+simply not supporting `syscall` in any mode. handling these cases is mostly
+guesswork. there is little to be done here.
