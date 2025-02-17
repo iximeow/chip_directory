@@ -80,6 +80,16 @@ class CPUIDFeature:
         if self.subleaf is not None:
             if self.subleaf in top_level:
                 leaf = top_level[self.subleaf]
+            elif self.subleaf == 0:
+                # hack: some samples, namely Intel samples, such as
+                # GenuineIntel0050654_SkylakeXeon_CPUID5.txt, do not have ` [SL
+                # ..]` suffixes on lines for CPUID leaves that have subleaves
+                # when there is only one subleaf. one such leaf is 7. where a
+                # bunch of ISA extension bits live.
+                #
+                # so if we're parsing a subleaf and it's 0 and there is a leaf
+                # here, assume we're actually matching eax=leaf ecx=0.
+                leaf = top_level
             else:
                 return None
         else:
