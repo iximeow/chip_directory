@@ -7,6 +7,9 @@ import struct
 
 import dataset
 
+class NoCpus(Exception):
+    pass
+
 class CpusSelector:
     def __init__(self):
         self.family = None
@@ -1211,6 +1214,10 @@ def add(dbpath, cpuid_filename):
         print("skipping distrusted Comet Lake CPUID dumps")
         print("  (file: GenuineIntel00A065* or ..A066*)")
         sys.exit(0)
+    if "InstLatx64/GenuineIntel/GenuineIntel00206E6_Beckton_CPUID.txt" in cpuid_filename:
+        print("X6550 sample seems to have monitor disabled in the bios?")
+        print("  (file: GenuineIntel00206E6_Beckton_CPUID.txt)")
+        sys.exit(0)
 
     if cpu_table.find_one(name=info.proc_name(),
             virtual=info.suspected_virtual()):
@@ -1417,7 +1424,7 @@ def get_features_in_family(dbpath, cpus_selector, family):
         cpu_count = cpu_count['count(distinct cpus.id)']
 #        print("count: " + str(cpu_count) + " out of " + str(cpus_in_fam))
         if cpus_in_fam == 0:
-            continue
+            raise NoCpus()
 
         if cpu_count == cpus_in_fam:
             ext_in_all.append(name)
@@ -1550,6 +1557,8 @@ PREVIOUSES = {
         # _definitely_ not a NetBurst revision. but feature-wise NetBurst is the
         # closest analogue..
         "Bonnell": "NetBurst",
+        # Quark is like a kind of faster smaller and cooler P5
+        "Lakemont": "P5",
         # and at this point getting really nuanced about processor revisions is
         # a diminishing returns situation. less feature proliferation and fewer
         # segments to categorize.
@@ -1563,6 +1572,7 @@ PREVIOUSES = {
         "Zen 3": "Zen",
         "Zen": "Bulldozer",
         "Bulldozer": "Jaguar",
+        "Cato": "Jaguar",
         "Jaguar": "Bobcat",
         "Bobcat": "K10",
         "K10": "K8",
@@ -1577,17 +1587,31 @@ def show_lineage(dbpath, cpus_selector, features):
     fams = get_families(dbpath, cpus_selector, features)
     details = {}
     for fam in fams:
-        details[fam] = get_features_in_family(dbpath, cpus_selector, fam)
+        fam_features = None
+        try:
+            fam_features = get_features_in_family(dbpath, cpus_selector, fam)
+        except NoCpus:
+            print("no accepted cpuid readings for family {}".format(fam))
+            fam_features = "no cpus"
+
+        details[fam] = fam_features
 
     print("stage 1 ok")
+
+    def get_fam_features_best_guess(fam):
+        vend_preds = PREVIOUSES[cpus_selector.vendor]
+        while fam in vend_preds and details[fam] == "no cpus":
+            fam = vend_preds[fam]
+
+        return details[fam]['all']
 
     vend_preds = PREVIOUSES[cpus_selector.vendor]
 
     for d in details:
         if d in vend_preds:
             prev_fam = vend_preds[d]
-            prev = set(details[prev_fam]['all'])
-            curr = set(details[d]['all'])
+            prev = set(get_fam_features_best_guess(prev_fam))
+            curr = set(get_fam_features_best_guess(d))
             added = curr - prev
             lost = prev - curr
             print("{}: {} +".format(d, prev_fam) + " +".join(added))

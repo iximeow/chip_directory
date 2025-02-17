@@ -808,12 +808,11 @@ insert into family_model_info (
 );
 
 -- HELP! "Cato", 2019ish maybe OEM part? no idea what this actually is.
--- by date it might be Zen+? Zen 2?
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="AuthenticAMD"),
-  0xf, 7, 6, 2, (select id from uarches where name="Zen")
+  0xf, 7, 6, 2, (select id from uarches where name="Cato")
 );
 
 -- Zen and onward. this is a bit funky because AMD describes Zen,
