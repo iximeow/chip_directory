@@ -1217,6 +1217,15 @@ insert into families (name, description, vendor) values ('P5', NULL,
 insert into families (name, description, vendor) values ('P6', NULL,
   (select id from vendors where name="Intel")
 );
+insert into families (name, description, vendor) values ('Pentium Pro', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Pentium II', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Pentium III', NULL,
+  (select id from vendors where name="Intel")
+);
 insert into families (name, description, vendor) values ('NetBurst', NULL,
   (select id from vendors where name="Intel")
 );
@@ -1256,7 +1265,7 @@ insert into families (name, description, vendor) values ('Cooper Lake', NULL,
 insert into families (name, description, vendor) values ('Kaby Lake', NULL,
   (select id from vendors where name="Intel")
 );
-insert into families (name, description, vendor) values ('Coffee Lake', NULL,
+insert into families (name, description, vendor) values ('Kaby Lake-', NULL,
   (select id from vendors where name="Intel")
 );
 insert into families (name, description, vendor) values ('Whiskey Lake', NULL,
@@ -1269,6 +1278,9 @@ insert into families (name, description, vendor) values ('Palm Cove', NULL,
   (select id from vendors where name="Intel")
 );
 insert into families (name, description, vendor) values ('Coffee Lake', NULL,
+  (select id from vendors where name="Intel")
+);
+insert into families (name, description, vendor) values ('Coffee Lake-', NULL,
   (select id from vendors where name="Intel")
 );
 insert into families (name, description, vendor) values ('Comet Lake', NULL,
@@ -1307,6 +1319,13 @@ insert into families (name, description, vendor) values ('Silvermont', NULL,
   (select id from vendors where name="Intel")
 );
 insert into families (name, description, vendor) values ('Airmont', NULL,
+  (select id from vendors where name="Intel")
+);
+-- Spreadtrum SC9853I-IA is a fascinating bundling of Airmont cores into an SoC
+-- for... some autombile head units maybe? core feature wise it's similar to an
+-- N3050 or other Airmont parts except with fewer features. no VMX, no RDRAND,
+-- etc.
+insert into families (name, description, vendor) values ('AirmontSpreadtrum', NULL,
   (select id from vendors where name="Intel")
 );
 -- absent better classification, KNL was kinda Airmont but also AVX512 etc.
@@ -1352,6 +1371,8 @@ insert into uarches (family, name, description) select
   id, "P24T", NULL from families where name="P5";
 insert into uarches (family, name, description) select
   id, "P55C", NULL from families where name="P5";
+insert into uarches (family, name, description) select
+  id, "Pentium Pro", NULL from families where name="Pentium Pro";
 -- HELP: accurate categorization?
 insert into uarches (family, name, description) select
   id, "Tillamook", NULL from families where name="P5";
@@ -1362,11 +1383,13 @@ insert into uarches (family, name, description) select
 insert into uarches (family, name, description) select
   id, "P6", NULL from families where name="P6";
 insert into uarches (family, name, description) select
-  id, "P2OD", NULL from families where name="P6";
+  id, "Pentium II", NULL from families where name="Pentium II";
 insert into uarches (family, name, description) select
-  id, "Katmai", NULL from families where name="P6";
+  id, "P2OD", NULL from families where name="Deschutes";
 insert into uarches (family, name, description) select
-  id, "Coppermine", NULL from families where name="P6";
+  id, "Katmai", NULL from families where name="Pentium III";
+insert into uarches (family, name, description) select
+  id, "Coppermine", NULL from families where name="Pentium III";
 -- HELP: mirror and notes:
 -- https://www.anandtech.com/show/1083/2
 -- very similar to P4 in some respects, apparently.. maybe not call this "P6"?
@@ -1469,19 +1492,25 @@ insert into uarches (family, name, description) select
 insert into uarches (family, name, description) select
   id, "Skylake", NULL from families where name="Skylake";
 insert into uarches (family, name, description) select
-  id, "Cascade Lake", NULL from families where name="Cascade Lake";
-insert into uarches (family, name, description) select
-  id, "Cooper Lake", NULL from families where name="Cooper Lake";
-insert into uarches (family, name, description) select
   id, "Kaby Lake", NULL from families where name="Kaby Lake";
 insert into uarches (family, name, description) select
+  id, "Kaby Lake-", NULL from families where name="Kaby Lake-";
+insert into uarches (family, name, description) select
   id, "Coffee Lake", NULL from families where name="Coffee Lake";
+insert into uarches (family, name, description) select
+  id, "Coffee Lake-", NULL from families where name="Coffee Lake-";
 insert into uarches (family, name, description) select
   id, "Whiskey Lake", NULL from families where name="Whiskey Lake";
 insert into uarches (family, name, description) select
   id, "Amber Lake", NULL from families where name="Amber Lake";
 insert into uarches (family, name, description) select
   id, "Coffee Lake", NULL from families where name="Coffee Lake";
+insert into uarches (family, name, description) select
+  id, "Coffee Lake-", NULL from families where name="Coffee Lake-";
+insert into uarches (family, name, description) select
+  id, "Cascade Lake", NULL from families where name="Cascade Lake";
+insert into uarches (family, name, description) select
+  id, "Cooper Lake", NULL from families where name="Cooper Lake";
 insert into uarches (family, name, description) select
   id, "Comet Lake", NULL from families where name="Comet Lake";
 insert into uarches (family, name, description) select
@@ -1526,7 +1555,9 @@ insert into uarches (family, name, description) select
 insert into uarches (family, name, description) select
   id, "Airmont", NULL from families where name="Airmont";
 insert into uarches (family, name, description) select
-  id, "Knights Landing", NULL from families where name="Airmont";
+  id, "Knights Landing", NULL from families where name="AirmontKNL";
+insert into uarches (family, name, description) select
+  id, "AirmontSpreadtrum", NULL from families where name="AirmontSpreadtrum";
 insert into uarches (family, name, description) select
   id, "Goldmont", NULL from families where name="Goldmont";
 insert into uarches (family, name, description) select
@@ -1602,25 +1633,25 @@ insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="GenuineIntel"),
-  6, 0, 1, 0, (select id from uarches where name="P6")
+  6, 0, 1, 0, (select id from uarches where name="Pentium Pro")
 );
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="GenuineIntel"),
-  6, 0, 3, 0, (select id from uarches where name="P2OD")
+  6, 0, 3, 0, (select id from uarches where name="Pentium II")
 );
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="GenuineIntel"),
-  6, 0, 5, 0, (select id from uarches where name="P6")
+  6, 0, 5, 0, (select id from uarches where name="Pentium II")
 );
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="GenuineIntel"),
-  6, 0, 6, 0, (select id from uarches where name="P6")
+  6, 0, 6, 0, (select id from uarches where name="Pentium II")
 );
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
@@ -1962,14 +1993,14 @@ insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="GenuineIntel"),
-  6, 0, 5, 7, (select id from uarches where name="Airmont")
+  6, 0, 5, 7, (select id from uarches where name="AirmontSpreadtrum")
 );
 
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="GenuineIntel"),
-  6, 0, 7, 5, (select id from uarches where name="Airmont")
+  6, 0, 7, 5, (select id from uarches where name="Knights Landing")
 );
 
 insert into family_model_info (
@@ -2034,13 +2065,13 @@ insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="GenuineIntel"),
-  6, 0, 14, 8, (select id from uarches where name="Kaby Lake")
+  6, 0, 14, 8, (select id from uarches where name="Kaby Lake-")
 );
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="GenuineIntel"),
-  6, 0, 14, 9, (select id from uarches where name="Kaby Lake")
+  6, 0, 14, 9, (select id from uarches where name="Coffee Lake-")
 );
 
 -- etallen makes a compelling argument that Whiskey Lake, Amber Lake, and Comet

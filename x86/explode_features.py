@@ -326,6 +326,14 @@ ISA_EXTENSIONS = [
     CPUIDBoolFeature("SNP (21)", "RMPREAD", 0x8000001f, "eax", 21),
     CPUIDBoolFeature("SSE4A", "SSE4A", 0x80000001, "ecx", 6),
     CPUIDBoolFeature("SVM", "Secure Virtual Machine", 0x80000001, "ecx", 2),
+    # only enumates if `cpuid` is executed in 64-bit mode. given the number of
+    # cpuid dumps where SysCallSysRet is not set, but the CPU presumably
+    # supports syscall (sufficient number of years past 64-bit mode being
+    # added..), the variance on this feature's support is presumably due to
+    # Windows users dumping cpuid readings from a 32-bit program in WoW.
+    #
+    # this might explain the CET, SERIALIZE, MOVDIR64B variance as well. i don't
+    # know and i don't like it.
     CPUIDBoolFeature("SysCallSysRet", "SYSCALL/SYSRET", 0x80000001, "edx", 11),
     CPUIDBoolFeature("TBM", "Trailing bit manipulation", 0x80000001, "ecx", 21),
     # needs two different bits set, so special parsing logic..
@@ -1174,6 +1182,36 @@ def add(dbpath, cpuid_filename):
 
     cpu_features = db['cpu_features']
 
+    if "GenuineIntel00506E3_Skylake_CPUID4.txt" in cpuid_filename:
+        # allegedly it does not support AVX, AVX2, syscall... seems wrong!
+        # i'd love to know what bios/microcode/motherboard/settings here, but
+        # there's no AIDA header on the file. so just ignore it.
+        print("InstLatx64 Pentium G4400 reading seems bogus, ignoring")
+        print(" (file: GenuineIntel00506E3_Skylake_CPUID4.txt)")
+        sys.exit(0)
+    if "GenuineIntel00806A1_Lakefield_CPUID.txt" in cpuid_filename:
+        # also does not support AVX, AVX2, syscall... slightly more believable
+        # as Intel ARK also confirms that the i5-L16G7 only supported SSE4.1 and
+        # SSE4.2 (so no AVX, no AVX2, ...), but no syscall???
+        # would love a second validation of what's in the InstLatx64 CPUID
+        # sample h ere.
+        print("skipping i5-L16G7, it is so featureless it skews >=Sunny Cove.")
+        print("  (file: GenuineIntel00806A1_Lakefield_CPUID.txt)")
+        sys.exit(0)
+    if "GenuineIntel00A065" in cpuid_filename or "GenuineIntel00A066" in cpuid_filename:
+        # there are a few readings of the 2h and 5h steppings of comet lake
+        # parts that claim to not support.. a lot of things. syscall, CET,
+        # monitor, VMX, AVX512, ... there are only a few CPUs here but based on
+        # LM presence but syscall non-presence i assume this is a consequence of
+        # strange BIOS/OS/measurement configuration and not representative of
+        # the real processors.
+        #
+        # at the same time, this is such a broad collection that i suspect it's
+        # a real feature weirdness. HELP!
+        print("skipping distrusted Comet Lake CPUID dumps")
+        print("  (file: GenuineIntel00A065* or ..A066*)")
+        sys.exit(0)
+
     if cpu_table.find_one(name=info.proc_name(),
             virtual=info.suspected_virtual()):
 #        print("'{}' already exists?".format(info.proc_name()))
@@ -1299,6 +1337,9 @@ def get_interesting_ctes(cpus_selector, features):
     pat = "([A-Za-z0-9 ]+)(:?(=|!=|>|<|>=|<=)([A-Za-z0-9]+))?"
 
     feature_rules = []
+
+    if len(features) == 0:
+        raise Exception("require at least one feature")
 
     for feat in features:
         feature_parse = re.match(pat, feat)
