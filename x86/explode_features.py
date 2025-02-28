@@ -1168,8 +1168,8 @@ class AIDAInfo:
             if parsed:
                 self.parsed_features.append(parsed)
 
-def init_db():
-    connection = sqlite3.connect("{}".format(dbpath()))
+def init_db(dbpath):
+    connection = sqlite3.connect("{}".format(dbpath))
     connection.cursor().executescript(open("product_info.sql", "r").read())
 
 def connect_db():
