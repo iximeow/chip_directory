@@ -1168,16 +1168,26 @@ class AIDAInfo:
             if parsed:
                 self.parsed_features.append(parsed)
 
-def init_db(dbpath):
-    connection = sqlite3.connect("{}".format(dbpath))
+def init_db():
+    connection = sqlite3.connect("{}".format(dbpath()))
     connection.cursor().executescript(open("product_info.sql", "r").read())
 
-def add(dbpath, cpuid_filename):
+def connect_db():
+    dbpath = "info.db"
+
+    if 'DBPATH' in os.environ:
+        dbpath = os.environ['DBPATH']
+
     if not os.path.isfile(dbpath):
         init_db(dbpath)
 
+    return dataset.connect("sqlite:///{}".format(dbpath))
+
+
+def add(cpuid_filename):
+    db = connect_db()
+
     text = open(cpuid_filename, "r").readlines()
-    db = dataset.connect("sqlite:///{}".format(dbpath))
 
     info = AIDAInfo(db, text)
 
@@ -1219,6 +1229,7 @@ def add(dbpath, cpuid_filename):
         print("  (file: GenuineIntel00206E6_Beckton_CPUID.txt)")
         sys.exit(0)
 
+    print("this is {}".format(info.proc_name()))
     if cpu_table.find_one(name=info.proc_name(),
             virtual=info.suspected_virtual()):
 #        print("'{}' already exists?".format(info.proc_name()))
@@ -1398,8 +1409,8 @@ def families_transitioning_query(cpus_selector, features):
             families.id in interesting and
             families.id in not_interesting;"""
 
-def get_features_in_family(dbpath, cpus_selector, family):
-    db = dataset.connect("sqlite:///{}".format(dbpath))
+def get_features_in_family(cpus_selector, family):
+    db = connect_db()
     fam_id = db['families'].find_one(name=family)['id']
     cpus_in_fam = db.query(
         "select count(cpus.id) from cpus where cpus.family={} and cpus.virtual=0;".format(fam_id))
@@ -1407,7 +1418,7 @@ def get_features_in_family(dbpath, cpus_selector, family):
     ext_in_all = []
     ext_in_some = []
 
-    for ext in ISA_EXTENSIONS:
+    for ext in ISA_EXTENSIONS + FEATURES:
         name = ext.shortname
         feat_id = None
         feat = db['features'].find_one(name=name, value=1)
@@ -1436,43 +1447,43 @@ def get_features_in_family(dbpath, cpus_selector, family):
         "some": ext_in_some
     }
 
-def features_in_family(dbpath, cpus_selector, features):
-    feats = get_features_in_family(dbpath, cpus_selector, features)
+def features_in_family(cpus_selector, features):
+    feats = get_features_in_family(cpus_selector, features)
     print("all: " + ", ".join(feats['all']))
     print("some: " + ", ".join(feats['some']))
 
-def families_with(dbpath, cpus_selector, features):
-    db = dataset.connect("sqlite:///{}".format(dbpath))
+def families_with(cpus_selector, features):
+    db = connect_db()
     families = db.query(families_with_query(cpus_selector, features))
     for family in families:
         print(family['name'])
 
-def families_without(dbpath, cpus_selector, features):
-    db = dataset.connect("sqlite:///{}".format(dbpath))
+def families_without(cpus_selector, features):
+    db = connect_db()
     families = db.query(families_without_query(cpus_selector, features))
     for family in families:
         print(family['name'])
 
-def families_transitioning(dbpath, cpus_selector, features):
-    db = dataset.connect("sqlite:///{}".format(dbpath))
+def families_transitioning(cpus_selector, features):
+    db = connect_db()
     families = db.query(families_transitioning_query(cpus_selector, features))
     for family in families:
         print(family['name'])
 
-def cpus_with(dbpath, cpus_selector, features):
-    db = dataset.connect("sqlite:///{}".format(dbpath))
+def cpus_with(cpus_selector, features):
+    db = connect_db()
     cpus = db.query(cpus_with_query(cpus_selector, features))
     for cpu in cpus:
         print(cpu['name'])
 
-def cpus_without(dbpath, cpus_selector, features):
-    db = dataset.connect("sqlite:///{}".format(dbpath))
+def cpus_without(cpus_selector, features):
+    db = connect_db()
     cpus = db.query(cpus_without_query(cpus_selector, features))
     for cpu in cpus:
         print(cpu['name'])
 
-def get_families(dbpath, cpus_selector, features):
-    db = dataset.connect("sqlite:///{}".format(dbpath))
+def get_families(cpus_selector, features):
+    db = connect_db()
     q = "select * from families"
     if cpus_selector.family:
         raise Exception(
@@ -1490,8 +1501,8 @@ def get_families(dbpath, cpus_selector, features):
     families = db.query(q)
     return [fam['name'] for fam in families]
 
-def list_families(dbpath, cpus_selector, features):
-    for fam in get_families(dbpath, cpus_selector, features):
+def list_families(cpus_selector, features):
+    for fam in get_families(cpus_selector, features):
         print(fam)
 
 # HELP! this is basically guesswork. really need to consult vendor
@@ -1569,7 +1580,10 @@ PREVIOUSES = {
         "P5": "486"
     },
     "AMD": {
-        "Zen 3": "Zen",
+        "Zen 5": "Zen 4",
+        "Zen 4": "Zen 3",
+        "Zen 3": "Zen 2",
+        "Zen 2": "Zen",
         "Zen": "Bulldozer",
         "Bulldozer": "Jaguar",
         "Cato": "Jaguar",
@@ -1583,13 +1597,13 @@ PREVIOUSES = {
     }
 }
 
-def show_lineage(dbpath, cpus_selector, features):
-    fams = get_families(dbpath, cpus_selector, features)
+def show_lineage(cpus_selector, features):
+    fams = get_families(cpus_selector, features)
     details = {}
     for fam in fams:
         fam_features = None
         try:
-            fam_features = get_features_in_family(dbpath, cpus_selector, fam)
+            fam_features = get_features_in_family(cpus_selector, fam)
         except NoCpus:
             print("no accepted cpuid readings for family {}".format(fam))
             fam_features = "no cpus"
@@ -1602,6 +1616,9 @@ def show_lineage(dbpath, cpus_selector, features):
         vend_preds = PREVIOUSES[cpus_selector.vendor]
         while fam in vend_preds and details[fam] == "no cpus":
             fam = vend_preds[fam]
+
+        if fam == "Am486":
+            return []
 
         return details[fam]['all']
 
@@ -1619,7 +1636,7 @@ def show_lineage(dbpath, cpus_selector, features):
                 print("    -" + " -".join(lost))
         else:
             print("unknown arch: {}".format(d))
-            print("{}: {}".format(d, ', '.join(details[d]['all'])))
+            # print("{}: {}".format(d, ', '.join(details[d]['all'])))
 
 cmd = sys.argv[1]
 
@@ -1635,17 +1652,16 @@ searches = {
 }
 
 if cmd == "add":
-    add(sys.argv[2], sys.argv[3])
+    add(sys.argv[2])
 else:
     # HELP: look the adhoc argument parsing is bad but...
     # anyway all the cpu/family commands should be able to limit the vendors
     # which they're concerned with
     op = searches[cmd]
 
-    dbpath = sys.argv[2]
     cpus_selector = CpusSelector()
 
-    args = sys.argv[3:]
+    args = sys.argv[2:]
 
     while  len(args) > 0:
         if args[0] == "--vendor":
@@ -1663,4 +1679,4 @@ else:
         else:
             break
 
-    op(dbpath, cpus_selector, args)
+    op(cpus_selector, args)

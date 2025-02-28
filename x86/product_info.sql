@@ -81,7 +81,19 @@ insert into families (name, description, vendor) values (
   (select id from vendors where name="AMD")
 );
 insert into families (name, description, vendor) values (
+  'Zen 2', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
   'Zen 3', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'Zen 4', NULL,
+  (select id from vendors where name="AMD")
+);
+insert into families (name, description, vendor) values (
+  'Zen 5', NULL,
   (select id from vendors where name="AMD")
 );
 
@@ -213,17 +225,19 @@ insert into uarches (family, name, description) select
 insert into uarches (family, name, description) select
   id, "Zen+", NULL from families where name="Zen";
 insert into uarches (family, name, description) select
-  id, "Zen 2", NULL from families where name="Zen";
+  id, "Zen 2", NULL from families where name="Zen 2";
 insert into uarches (family, name, description) select
   id, "Zen 3", NULL from families where name="Zen 3";
 insert into uarches (family, name, description) select
-  id, "Zen 4", NULL from families where name="Zen 3";
+  id, "Zen 4", NULL from families where name="Zen 4";
 insert into uarches (family, name, description) select
-  id, "Zen 4c", NULL from families where name="Zen 3";
+  id, "Zen 4c", NULL from families where name="Zen 4";
 -- maybe should be a new family in its own right? the rough threshold here is
 -- "did issue width increase? probably a new family" so...
 insert into uarches (family, name, description) select
-  id, "Zen 5", NULL from families where name="Zen 3";
+  id, "Zen 5", NULL from families where name="Zen 5";
+insert into uarches (family, name, description) select
+  id, "Zen 5c", NULL from families where name="Zen 5";
 
 
 create table "family_model_info" (
@@ -970,8 +984,6 @@ insert into family_model_info (
   (select id from vendors where brandstring="AuthenticAMD"),
   0xf, 0xa, 1, 2, (select id from uarches where name="Zen 3")
 );
--- though Zen 4 was a refresh on Zen 3 rather than substantially
--- different
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
