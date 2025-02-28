@@ -984,11 +984,13 @@ insert into family_model_info (
   (select id from vendors where brandstring="AuthenticAMD"),
   0xf, 0xa, 1, 2, (select id from uarches where name="Zen 3")
 );
+-- HELP: pretty sure that cpuid is wrong here and that family
+-- fh+1 model ah+0 is actually Zen 3, not Zen 4
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="AuthenticAMD"),
-  0xf, 0xa, 1, 0, (select id from uarches where name="Zen 4")
+  0xf, 0xa, 1, 0, (select id from uarches where name="Zen 3")
 );
 -- HELP! Genoa? why is Genoa 1+1 but Vermeer is 1+2 aka Zen 3????
 insert into family_model_info (
