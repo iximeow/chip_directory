@@ -1633,9 +1633,9 @@ def show_lineage(cpus_selector, features):
             lost = prev - curr
             print("{}: {}".format(d, prev_fam))
             if len(added) > 0:
-                print(" +" + " +".join(added))
+                print("  +" + " +".join(added))
             if len(lost) > 0:
-                print("    -" + " -".join(lost))
+                print("  -" + " -".join(lost))
         else:
             print("unknown arch: {}".format(d))
             # print("{}: {}".format(d, ', '.join(details[d]['all'])))
