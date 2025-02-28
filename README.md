@@ -13,8 +13,8 @@ here as well, though PDFs in the repo are not gonna be great.
 
 if you see `HELP!` anywhere in here, that's somewhere i'd love help! they
 probably should have issues, but i might not have written issues. this ranges
-from "i don't have good citations for this" to "Intel family/model names
-aren't catalogued well"
+from "i don't have good citations for this" to "some CPUID feature bits are
+not parsed meaningfully"
 
 ### x86
 

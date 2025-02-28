@@ -8,21 +8,30 @@ would be to know what CPUID readings describe processors in which market
 segments, and which processors are unreleased/prerelease versus being
 intentional product releases to general (non-OEM) parties.
 
-as an example of this right now, acknowledging that there is no Intel family
-info yet and so only descriptive of AMD, you can ask "what processor families
+as an example of this right now you can ask "what processor families
 have AVX2?" with...
 ```
 > for f in InstLatx64/AuthenticAMD/AuthenticAMD*CPUID*.txt; do
->   python3 explode_features.py add info.db $f
+>   python3 explode_features.py add $f
 > done
 
-> python3 explode_features.py families-with info.db AVX2
+> python3 explode_features.py families-with AVX2
+Bulldozer
 Zen
 Zen 3
+Zen 4
+Zen 5
 ```
 
-... for entirely arbitrary reasons, i decided that Zen 2 rounds to Zen, and
-both Zen 4 and 5 round to Zen 3. this should probably be revisited.
+note the absence of `Zen 2` from this list: that is because `InstLatx64` does
+not have CPUID dumps for processors that `explode_features.py` identifies as
+Zen 2, *not* because there is positive confirmation Zen 2 is missing the
+feature!
+
+it is worth carefully considering what is reported by this script before taking
+output as a universal truth; between occasional engineering sample outputs and
+unknown end-user hardware configurations, as well as occasional readings from
+inside virtual machines, sometimes there can be.... funny output.
 
 #### HELP
 
