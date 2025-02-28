@@ -1298,6 +1298,7 @@ def get_interesting(cpus_selector, features):
         not_interesting as (
             select cpus.id from cpus join families on cpus.family=families.id where
                 cpus.id not in interesting
+                and families.vendor in vendorid
                 and cpus.virtual=0
         )
         """.format(cpus_selector.vendor, predicate)
