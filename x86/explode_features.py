@@ -1631,7 +1631,9 @@ def show_lineage(cpus_selector, features):
             curr = set(get_fam_features_best_guess(d))
             added = curr - prev
             lost = prev - curr
-            print("{}: {} +".format(d, prev_fam) + " +".join(added))
+            print("{}: {}".format(d, prev_fam))
+            if len(added) > 0:
+                print(" +" + " +".join(added))
             if len(lost) > 0:
                 print("    -" + " -".join(lost))
         else:
