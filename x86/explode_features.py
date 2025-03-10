@@ -1171,6 +1171,8 @@ class AIDAInfo:
 def init_db(dbpath):
     connection = sqlite3.connect("{}".format(dbpath))
     connection.cursor().executescript(open("product_info.sql", "r").read())
+    connection.cursor().executescript(open("chipsets.sql", "r").read())
+    connection.cursor().executescript(open("docs.sql", "r").read())
 
 def connect_db():
     dbpath = "info.db"
