@@ -1242,10 +1242,10 @@ def add(cpuid_filename):
     uarch_id = info.feature("uarch").value
 
     first_cpu_info = info.cpuid[0]
-    leaf_0h = first_cpu_info[0]
+    leaf_1h = first_cpu_info[1]
     cpu_id = cpu_table.insert({
         "name": info.proc_name(),
-        "cpuid_fms": leaf_0h['eax'],
+        "cpuid_fms": leaf_1h['eax'],
         "family": fam_id,
         "uarch": uarch_id,
         "source": cpuid_filename,
