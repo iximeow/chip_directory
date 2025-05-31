@@ -1588,7 +1588,7 @@ PREVIOUSES = {
         "Zen 3": "Zen 2",
         "Zen 2": "Zen",
         "Zen": "Bulldozer",
-        "Bulldozer": "Jaguar",
+        "Bulldozer": "K10",
         "Cato": "Jaguar",
         "Jaguar": "Bobcat",
         "Bobcat": "K10",
