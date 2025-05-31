@@ -207,9 +207,8 @@ insert into uarches (family, name, description) select
 insert into uarches (family, name, description) select
   id, "Magny-Cours", "last of the K10 Opterons" from families where name="K10";
 
--- HELP! would like better citation on Griffin here..
 insert into uarches (family, name, description) select
-  id, "Griffin", "last of the K10 Opterons" from families where name="K10";
+  id, "Griffin", "first mobile-targeting AMD processor. decent single link: https://www.realworldtech.com/amd-griffin/" from families where name="K8";
 
 insert into uarches (family, name, description) select
   id, "Bulldozer", NULL from families where name="Bulldozer";
@@ -625,9 +624,14 @@ insert into family_model_info (
   (select id from vendors where brandstring="AuthenticAMD"),
   0xf, 1, 10, 0, (select id from uarches where name="Thuban")
 );
--- just going by the InstLatx64 CPUID collection and AIDA on this one..
--- HELP! with a list of parts/product codenames this might be a little more
--- clearly sourced..
+-- three InstLatx64 samples here, Turion X2 Ultra and an engineering sample.
+-- wikipedia notes these as K8 Revision G: https://en.wikipedia.org/wiki/AMD_Turion#Turion_X2_Ultra, also mentioned in this AnandTech article:
+-- https://www.anandtech.com/show/2235/3
+-- they do have a north bridge that is closer to a K10
+-- also discussed in https://old.hotchips.org/wp-content/uploads/hc_archives/hc19/3_Tues/HC19.08/HC19.08.02.pdf
+-- note that "AMD64 core" could really only have been K8 or *maybe* K10 at this
+-- point, but K10 didn't launch for another few months and AMD seems to have
+-- been quiet about future designs at this point.
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
@@ -642,9 +646,6 @@ insert into family_model_info (
   (select id from vendors where brandstring="AuthenticAMD"),
   0xf, 3, 1, 0, (select id from uarches where name="K10")
 );
--- not sure InstLatx64 has samples here.. wikipedia also notes these
--- as "Turion X2 Ultra
---0x11: { "uarch": "Puma (2008)", "family": "K10" },
 -- double check A8-3850
 --0x12: { "uarch": "Puma (2008)", "family": "K10" },
 --0x14: { "uarch": "Bobcat", "family": "Bobcat" },
