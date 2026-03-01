@@ -65,6 +65,9 @@ insert into "docs" (title, description, published, source, kind) values (
 );
 
 -- product/family-specific documents
+-- HELP! the rest of this file generally conflates CPU documentation (uncore
+-- performance counters, etc) and chipset documentation (which may be shared
+-- across sever/desktop/mobile segments). probably need cpus to have a `doc_item` column..
 
 -- this document *exists*, we just don't get to see it yet
 --insert into "docs" (title, description, published, source, kind) values (
@@ -384,11 +387,6 @@ insert into "docs" (title, description, published, source, kind) values (
 
 insert into "doc_items" (id) values (NULL);
 
---insert into "doc_links" (doc_item, doc) values (
---  (select count(*) from doc_items),
---  (select id from docs where title="5th Gen Intel® Xeon® Processor Scalable Family, Codename Emerald Rapids Data Sheet Vol. 2 Registers")
---);
-
 insert into "doc_links" (doc_item, doc) values (
   (select count(*) from doc_items),
   (select id from docs where title="Intel® 800 Series Chipset Family Platform Controller Hub Datasheet - Volume 1 of 2")
@@ -397,11 +395,6 @@ insert into "doc_links" (doc_item, doc) values (
 insert into "doc_links" (doc_item, doc) values (
   (select count(*) from doc_items),
   (select id from docs where title="Intel_-800-Series-Chipset-Family-Platform-Controller-Hub-(PCH),-Volume-2.zip")
-);
-
-insert into "doc_links" (doc_item, doc) values (
-  (select count(*) from doc_items),
-  (select id from docs where title="5th Gen Intel® Xeon® Scalable Processor XCC (Codename Emerald Rapids) Uncore Performance Monitoring Guide")
 );
 
 -- only exists as html and xml???
@@ -415,6 +408,18 @@ update chipsets
   where codename="Intel 800 Series";
 
 insert into "doc_items" (id) values (NULL);
+
+-- HELP! these should probably be doc items on Emerald Rapids parts specifically..?
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="5th Gen Intel® Xeon® Processor Scalable Family, Codename Emerald Rapids Data Sheet Vol. 2 Registers")
+);
+
+-- HELP! these should probably be doc items on Emerald Rapids parts specifically..?
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="5th Gen Intel® Xeon® Scalable Processor XCC (Codename Emerald Rapids) Uncore Performance Monitoring Guide")
+);
 
 insert into "doc_links" (doc_item, doc) values (
   (select count(*) from doc_items),

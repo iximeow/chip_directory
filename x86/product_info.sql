@@ -1578,6 +1578,8 @@ insert into uarches (family, name, description) select
   id, "Emerald Rapids", NULL from families where name="Raptor Cove";
 insert into uarches (family, name, description) select
   id, "Meteor Lake", NULL from families where name="Redwood Cove";
+insert into uarches (family, name, description) select
+  id, "Arrow Lake", NULL from families where name="Lion Cove";
 
 -- and then Atom...
 -- HELP! not being precise about the product codenames for Atom yet
@@ -2306,6 +2308,14 @@ insert into family_model_info (
   6, 0, 12, 10, (select id from uarches where name="Meteor Lake")
 );
 
+-- Arrow Lake,
+-- https://edc.intel.com/content/www/us/en/design/products/platforms/details/arrow-lake-s/core-ultra-200s-series-processors-datasheet-volume-1-of-2/cpuid/
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="GenuineIntel"),
+  6, 0, 6, 12, (select id from uarches where name="Meteor Lake")
+);
 -- cpuid describes this as Panther Lake, not sure what's going on here yet.
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch

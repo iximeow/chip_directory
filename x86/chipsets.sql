@@ -40,6 +40,68 @@ alter table uarches add column "chipset";
 -- especially for older (Penryn-era) product intersections,
 -- https://www.supermicro.com/products/motherboard/archive/ is a great reference
 
+-- see https://www.intel.com/content/www/us/en/ark/products/series/229717/intel-700-series-desktop-chipsets.html
+insert into "chipsets" (
+  codename, human_name, description, segment, vendor
+) values (
+  "",
+  "Intel 800 Series",
+  "Intel 800 Series Chipset Family Platform Controller Hub (H810, B860, Q870, W880, Z890)",
+  "",
+  1,
+  (select id from vendors where name="Intel")
+);
+
+update families set chipset=(
+  select id from chipsets where human_name="Intel 800 Series"
+) where name in ("Arrow Lake"); -- and others?
+
+-- see https://www.intel.com/content/www/us/en/ark/products/series/229717/intel-700-series-desktop-chipsets.html
+insert into "chipsets" (
+  codename, human_name, description, segment, vendor
+) values (
+  "",
+  "Intel 700 Series",
+  "Intel 700 Series Chipset Family Platform Controller Hub (W790, B760, H770, Z790)",
+  "",
+  1,
+  (select id from vendors where name="Intel")
+);
+
+-- no public datasheets i can find.
+insert into "chipsets" (
+  codename, human_name, description, segment, vendor
+) values (
+  "Emmitsburg",
+  "Intel C74x",
+  "Chipsets used across C741E and others?",
+  1,
+  (select id from vendors where name="Intel")
+);
+
+-- don't link C74x specifically to sapphire rapids (yet?) because the 700-series
+-- update families set chipset=(
+--   select id from chipsets where human_name="Intel C74x"
+-- ) where name in ("Emerald Rapids", "Sapphire Rapids");
+update families set chipset=(
+  select id from chipsets where human_name="Intel 700 Series"
+) where name in ("Emerald Rapids", "Sapphire Rapids");
+
+insert into "chipsets" (
+  codename, human_name, description, segment, vendor
+) values (
+  "",
+  "Intel C621A",
+  "Chipsets used for 3rd Generation Intel Xeon Scalable Processor. At least C621A, maybe others?",
+  1,
+  (select id from vendors where name="Intel")
+);
+
+-- hard to find intel documents to cite here...
+update families set chipset=(
+  select id from chipsets where human_name="Intel C621A"
+) where name in ("Ice Lake");
+
 -- the wider platform name for products with Skylake-SP processors, Lewisburg PCHs, etc, is "Purley":
 -- https://www.intel.com/content/www/us/en/products/platforms/details/purley.html
 insert into "chipsets" (
@@ -56,21 +118,6 @@ insert into "chipsets" (
 update families set chipset=(
   select id from chipsets where human_name="Intel C62x"
 ) where name in ("Skylake", "Cascade Lake");
-
-insert into "chipsets" (
-  codename, human_name, description, segment, vendor
-) values (
-  "",
-  "Intel C621A",
-  "Chipsets used for 3rd Generation Intel Xeon Scalable Processor. At least C621A, maybe others?",
-  1,
-  (select id from vendors where name="Intel")
-);
-
--- hard to find intel documents to cite here...
-update families set chipset=(
-  select id from chipsets where human_name="Intel C621A"
-) where name in ("Ice Lake");
 
 insert into "chipsets" (
   codename, human_name, description, segment, vendor
