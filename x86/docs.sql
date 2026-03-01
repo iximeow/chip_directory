@@ -54,6 +54,133 @@ create table "docs" (
   kind INTEGER NOT NULL
 );
 
+-- generally applicable across parts
+
+insert into "docs" (title, description, published, source, kind) values (
+  "Intel® 64 and IA-32 Architectures Software Developer’s Manual Volume 4: Model-Specific Registers",
+  "Order Number: 335592-079US",
+  "March 2023",
+  "https://cdrdv2-public.intel.com/774499/334569-sdm-vol-2d.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+-- product/family-specific documents
+
+-- this document *exists*, we just don't get to see it yet
+--insert into "docs" (title, description, published, source, kind) values (
+--  "5th Gen Intel® Xeon® Processor Scalable Family, Codename Emerald Rapids, Registers Specification.",
+--  "",
+--  "",
+--  "",
+--  (select id from "doc_kind" where name="vendor reference")
+--);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "Intel® 800 Series Chipset Family Platform Controller Hub (PCH) Datasheet, Volume 1 of 2",
+  "Doc. No.: 833778, Rev.: 003",
+  "February 2025",
+  "https://cdrdv2-public.intel.com/833778/833778-003.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "Intel_-800-Series-Chipset-Family-Platform-Controller-Hub-(PCH),-Volume-2.zip",
+  "Unknown",
+  "February 2025?",
+  "https://edc.intel.com/output/DownloadCrifOutput?id=513",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "5th Gen Intel® Xeon® Scalable Processor XCC (Codename Emerald Rapids) Uncore Performance Monitoring Guide",
+  "Reference Number: 817509",
+  "August 2024",
+  "https://cdrdv2-public.intel.com/817509/817509-EMR_XCC_UPG_Guide-Rev_001.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+-- Sapphire Rapids/SPR docs
+
+insert into "docs" (title, description, published, source, kind) values (
+  "4th Gen Intel® Xeon® Processor Scalable Family, Codename Sapphire Rapids Data Sheet Vol. 2 Registers",
+  "Doc. No.: 814094, Rev.: 001",
+  "July 2025",
+  "https://cdrdv2.intel.com/v1/dl/getContent/814094?explicitVersion=true",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "Intel® 700 Series Chipset Family Platform Controller Hub Datasheet - Volume 1 of 2",
+  "Doc. No.: 743835, Rev.: 004",
+  "July 2025",
+  "https://cdrdv2-public.intel.com/743845/743845_001.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "Intel® 700 Series Chipset Family Platform Controller Hub Datasheet - Volume 2 of 2",
+  "Document Number: 743845",
+  "July 2025",
+  "https://cdrdv2-public.intel.com/743845/743845_001.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "3rd Gen Intel® Xeon® Scalable Processor, Codename Ice Lake Datasheet, Volume Two: Registers",
+  "Reference Number: 735086-002US",
+  "November 2022",
+  "https://cdrdv2-public.intel.com/735086/735086%20ICX%20DatasheetVol2R002.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "3rd Gen Intel® Xeon® Scalable Processors, Codename Ice Lake Specification Update",
+  "Reference Number: 637780-025US",
+  "January 2026",
+  "https://cdrdv2.intel.com/v1/dl/getContent/637780?fileName=637780_3rd_Gen_Xeon_Scalable_Spec_Update_025US.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "Second Generation Intel® Xeon® Scalable Processors Datasheet, Volume Two: Registers",
+  "Reference Number: 338846-001US",
+  "April 2019",
+  "https://www.intel.com/content/dam/www/public/us/en/documents/datasheets/2nd-gen-xeon-scalable-datasheet-vol-2.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "Intel® C620 Series Chipset Platform Controller Hub Datasheet",
+  "Document Number: 336067-007US",
+  "May 2019",
+  "https://www.intel.com/content/dam/www/public/us/en/documents/datasheets/c620-series-chipset-datasheet.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "2nd Gen Intel® Xeon® Scalable Processors Specification Update",
+  "Reference Number: 338848-028US",
+  "October 2023",
+  "https://cdrdv2-public.intel.com/338848/338848_2nd%20Gen%20Intel%C2%AE%20Xeon%C2%AE%20Scalable%20Processors%20Specification%20Update_Rev028US.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "Intel® Xeon Phi™ Processor  Datasheet - Volume 2 - Registers",
+  "Reference Number: 335265-001US",
+  "December 2016",
+  "https://www.intel.com.tw/content/dam/www/public/us/en/documents/datasheets/xeon-phi-processor-x200-product-family-vol-2-datasheet.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "Intel® C610 Series Chipset and Intel® X99 Chipset Platform Controller Hub (PCH) Datasheet"
+  "Document Number: 330788-003",
+  "October 2015",
+  "https://www.intel.com/content/dam/www/public/us/en/documents/datasheets/x99-chipset-pch-datasheet.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
 insert into "docs" (title, description, published, source, kind) values (
   "Intel® 7 Series / C216 Chipset Family Platform Controller Hub (PCH)",
   "Order Number: 326776-003",
@@ -254,6 +381,126 @@ insert into "docs" (title, description, published, source, kind) values (
   "https://cdrdv2-public.intel.com/338653/338653%20Denverton_PRM_v_1_8.pdf",
   (select id from "doc_kind" where name="vendor reference")
 );
+
+insert into "doc_items" (id) values (NULL);
+
+--insert into "doc_links" (doc_item, doc) values (
+--  (select count(*) from doc_items),
+--  (select id from docs where title="5th Gen Intel® Xeon® Processor Scalable Family, Codename Emerald Rapids Data Sheet Vol. 2 Registers")
+--);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="Intel® 800 Series Chipset Family Platform Controller Hub Datasheet - Volume 1 of 2")
+);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="Intel_-800-Series-Chipset-Family-Platform-Controller-Hub-(PCH),-Volume-2.zip")
+);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="5th Gen Intel® Xeon® Scalable Processor XCC (Codename Emerald Rapids) Uncore Performance Monitoring Guide")
+);
+
+-- only exists as html and xml???
+--insert into "doc_links" (doc_item, doc) values (
+--  (select count(*) from doc_items),
+--  (select id from docs where title="Intel® 800 Series Chipset Family Platform Controller Hub Datasheet - Volume 2 of 2")
+--);
+
+update chipsets
+  set doc_item=(select count(*) from doc_items)
+  where codename="Intel 800 Series";
+
+insert into "doc_items" (id) values (NULL);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="4th Gen Intel® Xeon® Processor Scalable Family, Codename Sapphire Rapids Data Sheet Vol. 2 Registers")
+);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="Intel® 700 Series Chipset Family Platform Controller Hub Datasheet - Volume 1 of 2")
+);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="Intel® 700 Series Chipset Family Platform Controller Hub Datasheet - Volume 2 of 2")
+);
+
+update chipsets
+  set doc_item=(select count(*) from doc_items)
+  where codename="Intel 700 Series";
+
+insert into "doc_items" (id) values (NULL);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="3rd Gen Intel® Xeon® Scalable Processor, Codename Ice Lake Datasheet, Volume Two: Registers")
+);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="Intel® C620 Series Chipset Platform Controller Hub Datasheet")
+);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="3rd Gen Intel® Xeon® Scalable Processors, Codename Ice Lake Specification Update")
+);
+
+update chipsets
+  set doc_item=(select count(*) from doc_items)
+  where codename="Intel C621A";
+
+insert into "doc_items" (id) values (NULL);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="Second Generation Intel® Xeon® Scalable Processors Datasheet, Volume Two: Registers")
+);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="Intel® C620 Series Chipset Platform Controller Hub Datasheet")
+);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="2nd Gen Intel® Xeon® Scalable Processors Specification Update")
+);
+
+update chipsets
+  set doc_item=(select count(*) from doc_items)
+  where codename="Lewisburg";
+
+insert into "doc_items" (id) values (NULL);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="Intel® C610 Series Chipset and Intel® X99 Chipset Platform Controller Hub (PCH) Datasheet")
+);
+
+update chipsets
+  set doc_item=(select count(*) from doc_items)
+  where codename="Wellsburg";
+
+insert into "doc_items" (id) values (NULL);
+
+insert into "doc_links" (doc_item, doc) values (
+  (select count(*) from doc_items),
+  (select id from docs where title="Intel® Xeon Phi™ Processor  Datasheet - Volume 2 - Registers")
+);
+
+-- probably applies to Knights Mill too, mostly?
+-- the platform was called Groveport:
+-- https://www.intel.com/content/www/us/en/products/platforms/details/groveport.html
+update chipsets
+  set doc_item=(select count(*) from doc_items)
+  where codename="Knights Landing";
 
 insert into "doc_items" (id) values (NULL);
 

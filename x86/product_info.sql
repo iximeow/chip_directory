@@ -1140,7 +1140,25 @@ insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
 ) values (
   (select id from vendors where brandstring="AuthenticAMD"),
+  0xf, 0xb, 0, 6, (select id from uarches where name="Zen 5")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="AuthenticAMD"),
+  0xf, 0xb, 0, 7, (select id from uarches where name="Zen 5")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="AuthenticAMD"),
   0xf, 0xb, 1, 0, (select id from uarches where name="Zen 5")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="AuthenticAMD"),
+  0xf, 0xb, 1, 1, (select id from uarches where name="Zen 5")
 );
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch
@@ -1159,6 +1177,12 @@ insert into family_model_info (
 ) values (
   (select id from vendors where brandstring="AuthenticAMD"),
   0xf, 0xb, 4, 0, (select id from uarches where name="Zen 5")
+);
+insert into family_model_info (
+  vendor, family, ext_family, model, ext_model, uarch
+) values (
+  (select id from vendors where brandstring="AuthenticAMD"),
+  0xf, 0xb, 4, 2, (select id from uarches where name="Zen 5")
 );
 insert into family_model_info (
   vendor, family, ext_family, model, ext_model, uarch

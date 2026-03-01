@@ -618,6 +618,8 @@ aida_cpu_lines = {
     "CPUID Revision    :": "cpuid_revision",
     "Platform ID       :": "platform",
     "HTT / CMP Units   :": "http_cmp",
+    # AIDA seems to have renamed this line from "HTT" (Hyperthreading?)
+    "SMT / CMP Units   :": "http_cmp",
     "Max. NUMA Node    :": "max_numa",
     "Max. NUMA Node     :": "max_numa",
     "Tjmax Temperature       :": "tjmax",

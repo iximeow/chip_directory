@@ -40,6 +40,53 @@ alter table uarches add column "chipset";
 -- especially for older (Penryn-era) product intersections,
 -- https://www.supermicro.com/products/motherboard/archive/ is a great reference
 
+-- the wider platform name for products with Skylake-SP processors, Lewisburg PCHs, etc, is "Purley":
+-- https://www.intel.com/content/www/us/en/products/platforms/details/purley.html
+insert into "chipsets" (
+  codename, human_name, description, segment, vendor
+) values (
+  "Lewisburg",
+  "Intel C62x",
+  "Chipset family spanning C621, C622, C624, C625, C626, C627, C628",
+  1,
+  (select id from vendors where name="Intel")
+);
+
+-- Lewisburg and C620-specific documents apply only to the server parts, not client/mobile..
+update families set chipset=(
+  select id from chipsets where human_name="Intel C62x"
+) where name in ("Skylake", "Cascade Lake");
+
+insert into "chipsets" (
+  codename, human_name, description, segment, vendor
+) values (
+  "",
+  "Intel C621A",
+  "Chipsets used for 3rd Generation Intel Xeon Scalable Processor. At least C621A, maybe others?",
+  1,
+  (select id from vendors where name="Intel")
+);
+
+-- hard to find intel documents to cite here...
+update families set chipset=(
+  select id from chipsets where human_name="Intel C621A"
+) where name in ("Ice Lake");
+
+insert into "chipsets" (
+  codename, human_name, description, segment, vendor
+) values (
+  "Wellsburg",
+  "Intel C61x",
+  "Chipset family spanning C612, X99",
+  1,
+  (select id from vendors where name="Intel")
+);
+
+-- Wesllburg/X99/C610 only apply to enthusiast/extreme and xeon Haswell/Broadwell...
+update families set chipset=(
+  select id from chipsets where human_name="Intel C61x"
+) where name in ("Haswell", "Broadwell");
+
 insert into "chipsets" (
   codename, human_name, description, segment, vendor
 ) values (
