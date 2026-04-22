@@ -47,7 +47,6 @@ insert into "chipsets" (
   "",
   "Intel 800 Series",
   "Intel 800 Series Chipset Family Platform Controller Hub (H810, B860, Q870, W880, Z890)",
-  "",
   1,
   (select id from vendors where name="Intel")
 );
@@ -63,7 +62,6 @@ insert into "chipsets" (
   "",
   "Intel 700 Series",
   "Intel 700 Series Chipset Family Platform Controller Hub (W790, B760, H770, Z790)",
-  "",
   1,
   (select id from vendors where name="Intel")
 );

@@ -176,8 +176,26 @@ insert into "docs" (title, description, published, source, kind) values (
   (select id from "doc_kind" where name="vendor reference")
 );
 
+-- HELP! link this up to products appropriately
 insert into "docs" (title, description, published, source, kind) values (
-  "Intel® C610 Series Chipset and Intel® X99 Chipset Platform Controller Hub (PCH) Datasheet"
+  "Intel® Xeon® Processor E7 v4 Product Family Datasheet Volume 2: Registers",
+  "Reference Number: 334164-001US",
+  "May 2016",
+  "https://www.intel.com/content/dam/www/public/us/en/documents/datasheets/xeon-e7-v4-datasheet-vol-2.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+-- HELP! link this up to products appropriately
+insert into "docs" (title, description, published, source, kind) values (
+  "Intel® Xeon® Processor E5 v4 Product Family Datasheet Volume 2: Registers",
+  "Reference Number: 333810-002US",
+  "June 2016",
+  "https://cdrdv2-public.intel.com/333810/xeon-e5-v4-datasheet-vol-2.pdf",
+  (select id from "doc_kind" where name="vendor reference")
+);
+
+insert into "docs" (title, description, published, source, kind) values (
+  "Intel® C610 Series Chipset and Intel® X99 Chipset Platform Controller Hub (PCH) Datasheet",
   "Document Number: 330788-003",
   "October 2015",
   "https://www.intel.com/content/dam/www/public/us/en/documents/datasheets/x99-chipset-pch-datasheet.pdf",
