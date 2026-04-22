@@ -320,6 +320,11 @@ ISA_EXTENSIONS = [
     CPUIDBoolFeature("MONITORX", "MONITORX/MWAITX", 0x80000001, "ecx", 29),
     CPUIDBoolFeature("RDPRU", "RDPRU", 0x80000008, "ebx", 4),
     CPUIDBoolFeature("RDTSCP", "RDTSCP", 0x80000001, "edx", 27),
+    # APM:
+    # > 1-GB large page support. See "1-GB Paging Support" in APM Volume 2.
+    # SDM:
+    # > PAGE_1GB. If 1, supports 1-GByte pages
+    CPUIDBoolFeature("Page1GB", "1-GB large page support", 0x80000001, "edx", 26),
     CPUIDBoolFeature("SevEs", "VMGEXIT", 0x8000001f, "eax", 3),
     CPUIDBoolFeature("SKINIT", "SKINIT/STGI", 0x80000001, "ecx", 12),
     CPUIDBoolFeature("SMAP", "CLAC/STAC", 0x00000017, "ebx", 20, subleaf=0),
